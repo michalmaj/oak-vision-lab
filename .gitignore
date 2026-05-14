@@ -1,5 +1,6 @@
 # Local private notes and scratch files
 /local/
+.cache
 
 # Python
 __pycache__/

@@ -1,4 +1,4 @@
-"""OAK-D camera preview demo with a colorful HUD."""
+"""OAK-D camera preview demo with a colorful HUD using DepthAI v2 API."""
 
 from __future__ import annotations
 
@@ -11,14 +11,24 @@ from oak_vision_lab.visualization.hud import HudConfig, build_hud_lines
 
 
 def create_color_camera_pipeline() -> dai.Pipeline:
-    """Create a simple OAK-D color camera pipeline."""
+    """Create a DepthAI v2 RGB preview pipeline."""
 
     pipeline = dai.Pipeline()
 
     color_camera = pipeline.create(dai.node.ColorCamera)
+
+    rgb_socket = (
+        dai.CameraBoardSocket.RGB
+        if hasattr(dai.CameraBoardSocket, "RGB")
+        else dai.CameraBoardSocket.CAM_A
+    )
+
+    color_camera.setBoardSocket(rgb_socket)
+    color_camera.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
     color_camera.setPreviewSize(1280, 720)
     color_camera.setInterleaved(False)
     color_camera.setColorOrder(dai.ColorCameraProperties.ColorOrder.BGR)
+    color_camera.setFps(30)
 
     output = pipeline.create(dai.node.XLinkOut)
     output.setStreamName("preview")
@@ -41,7 +51,6 @@ def draw_hud(
     for index, text in enumerate(lines):
         y = origin_y + index * line_height
 
-        # The shadow improves text readability on both bright and dark backgrounds.
         cv2.putText(
             frame,
             text,
@@ -66,16 +75,23 @@ def draw_hud(
 
 
 def run_camera_preview_hud() -> None:
-    """Run the interactive OAK-D preview demo."""
+    """Run the interactive OAK-D preview demo using DepthAI v2."""
 
-    pipeline = create_color_camera_pipeline()
-    hud_config = HudConfig(title="oak-vision-lab | OAK-D Camera Preview")
+    print(f"DepthAI: {dai.__version__}")
+
+    hud_config = HudConfig(title="oak-vision-lab | OAK-D Camera Preview | DepthAI v2")
     show_help = True
 
     previous_time = time.perf_counter()
     fps = 0.0
 
+    pipeline = create_color_camera_pipeline()
+
     with dai.Device(pipeline) as device:
+        print(f"MXID: {device.getMxId()}")
+        print(f"Connected cameras: {device.getConnectedCameras()}")
+        print(f"USB speed: {device.getUsbSpeed()}")
+
         preview_queue = device.getOutputQueue(
             name="preview",
             maxSize=4,
@@ -103,12 +119,12 @@ def run_camera_preview_hud() -> None:
             hud_lines = build_hud_lines(
                 active_config,
                 fps=fps,
-                status="camera stream active",
+                status="camera stream active | DepthAI v2",
             )
 
             draw_hud(frame, hud_lines)
 
-            cv2.imshow("oak-vision-lab | Camera Preview HUD", frame)
+            cv2.imshow("oak-vision-lab | Camera Preview HUD | DepthAI v2", frame)
 
             key = cv2.waitKey(1) & 0xFF
 
