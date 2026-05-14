@@ -8,7 +8,7 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
-    "depthai>=3.6.1",
+    "depthai==2.32.0",
     "numpy>=2.4.4",
     "opencv-python>=4.13.0.92",
 ]
