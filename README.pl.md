@@ -1,5 +1,7 @@
 # oak-vision-lab
 
+[![CI](https://github.com/michalpmaj/oak-vision-lab/actions/workflows/ci.yml/badge.svg)](https://github.com/michalpmaj/oak-vision-lab/actions/workflows/ci.yml)
+
 > Interaktywne demonstracje computer vision dla kamer OAK-D, tworzone z myślą o dydaktyce, warsztatach i pokazach na żywo.
 
 [English version](README.md)
