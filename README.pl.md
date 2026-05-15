@@ -104,6 +104,18 @@ Formatowanie kodu:
 uv run ruff format .
 ```
 
+## Kompatybilność sprzętowa i DepthAI
+
+Projekt jest obecnie rozwijany z myślą o klasycznych kamerach OAK-D / urządzeniach RVC2 i używa DepthAI v2.
+
+Aktualna bazowa zależność projektu to:
+
+```text
+depthai==2.32.0
+```
+
+Wsparcie dla DepthAI v3 może zostać rozważone później jako osobna warstwa kompatybilności.
+
 ## Status
 
 Wczesny etap rozwoju. Projekt jest budowany krok po kroku.
