@@ -104,6 +104,18 @@ Format code:
 uv run ruff format .
 ```
 
+## Hardware and DepthAI compatibility
+
+This project currently targets classic OAK-D / RVC2 devices and uses DepthAI v2.
+
+The current baseline dependency is:
+
+```text
+depthai==2.32.0
+```
+
+DepthAI v3 support may be considered later as a separate compatibility layer.
+
 ## Status
 
 Early development. The project is being built step by step.
