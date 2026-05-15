@@ -1,5 +1,7 @@
 # oak-vision-lab
 
+[![CI](https://github.com/michalpmaj/oak-vision-lab/actions/workflows/ci.yml/badge.svg)](https://github.com/michalpmaj/oak-vision-lab/actions/workflows/ci.yml)
+
 > Interactive computer vision demos for OAK-D cameras, designed for education, workshops, and live presentations.
 
 [Polska wersja](README.pl.md)
@@ -30,10 +32,16 @@ The project is designed as:
 - pytest
 - GitHub Actions
 
+## Available demos
+
+| No. | Demo | Description | Documentation |
+| --- | --- | --- | --- |
+| 002 | Camera Preview HUD | Real-time RGB camera preview with FPS, status text and keyboard-controlled HUD. | [EN](examples/002_camera_preview_hud/README.md) / [PL](examples/002_camera_preview_hud/README.pl.md) |
+| 003 | Depth Map Viewer | Colorful stereo disparity visualization showing depth-like scene structure in real time. | [EN](examples/003_depth_map_viewer/README.md) / [PL](examples/003_depth_map_viewer/README.pl.md) |
+
 ## Planned demos
 
-- OAK-D camera preview with a colorful HUD
-- Depth map viewer
+- RGB + depth split-screen viewer
 - Object detection demo
 - People counter
 - Hand interaction demo
