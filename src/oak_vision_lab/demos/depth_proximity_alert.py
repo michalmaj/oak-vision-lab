@@ -299,7 +299,7 @@ def run_depth_proximity_alert() -> None:
             hud_lines = build_hud_lines(
                 active_config,
                 fps=fps,
-                status=f"{proximity_level.value} | mean disparity: {mean_disparity:.1f}"
+                status=f"{proximity_level.value} | mean disparity: {mean_disparity:.1f}",
             )
 
             draw_hud(colorized_frame, hud_lines)
