@@ -38,6 +38,8 @@ The project is designed as:
 | --- | --- | --- | --- |
 | 002 | Camera Preview HUD | Real-time RGB camera preview with FPS, status text and keyboard-controlled HUD. | [EN](examples/002_camera_preview_hud/README.md) / [PL](examples/002_camera_preview_hud/README.pl.md) |
 | 003 | Depth Map Viewer | Colorful stereo disparity visualization showing depth-like scene structure in real time. | [EN](examples/003_depth_map_viewer/README.md) / [PL](examples/003_depth_map_viewer/README.pl.md) |
+| 004 | RGB + Depth Split-Screen | Real-time split-screen view comparing regular RGB preview with colorful stereo disparity visualization. | [EN](examples/004_rgb_depth_split_screen/README.md) / [PL](examples/004_rgb_depth_split_screen/README.pl.md) |
+| 005 | Depth Proximity Alert | Interactive disparity-based alert demo that reacts when an object gets close to the center of the camera view. | [EN](examples/005_depth_proximity_alert/README.md) / [PL](examples/005_depth_proximity_alert/README.pl.md) |
 
 ## Planned demos
 
