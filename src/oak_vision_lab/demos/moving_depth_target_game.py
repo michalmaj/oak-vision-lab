@@ -21,6 +21,13 @@ from oak_vision_lab.depth.proximity import (
     classify_proximity,
     get_alert_color,
 )
+from oak_vision_lab.game.timing import (
+    get_time_left as get_timer_time_left,
+)
+from oak_vision_lab.game.timing import (
+    has_cooldown_elapsed,
+    is_timer_finished,
+)
 from oak_vision_lab.visualization.hud import HudConfig, build_hud_lines
 
 
@@ -117,9 +124,11 @@ def get_time_left(
 ) -> float:
     """Return remaining game time in seconds."""
 
-    elapsed_time = current_time - state.start_time
-
-    return max(0.0, config.duration_seconds - elapsed_time)
+    return get_timer_time_left(
+        start_time=state.start_time,
+        duration_seconds=config.duration_seconds,
+        current_time=current_time,
+    )
 
 
 def is_game_finished(
@@ -129,7 +138,11 @@ def is_game_finished(
 ) -> bool:
     """Check whether the game timer has finished."""
 
-    return get_time_left(state, config, current_time) <= 0.0
+    return is_timer_finished(
+        start_time=state.start_time,
+        duration_seconds=config.duration_seconds,
+        current_time=current_time,
+    )
 
 
 def is_scoring_proximity(level: ProximityLevel) -> bool:
@@ -152,9 +165,11 @@ def should_award_points(
     if not is_scoring_proximity(level):
         return False
 
-    time_since_last_hit = current_time - state.last_hit_time
-
-    return time_since_last_hit >= config.hit_cooldown_seconds
+    return has_cooldown_elapsed(
+        last_event_time=state.last_hit_time,
+        cooldown_seconds=config.hit_cooldown_seconds,
+        current_time=current_time,
+    )
 
 
 def update_game_state(
