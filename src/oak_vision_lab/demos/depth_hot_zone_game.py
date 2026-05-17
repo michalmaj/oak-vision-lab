@@ -4,22 +4,22 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, replace
-from enum import Enum
 
 import cv2
 import depthai as dai
 import numpy as np
 from numpy.typing import NDArray
 
+from oak_vision_lab.depth.disparity import (
+    colorize_disparity_frame,
+    compute_mean_disparity,
+)
+from oak_vision_lab.depth.proximity import (
+    ProximityLevel,
+    classify_proximity,
+    get_alert_color,
+)
 from oak_vision_lab.visualization.hud import HudConfig, build_hud_lines
-
-
-class ProximityLevel(Enum):
-    """Detected proximity level based on disparity statistics."""
-
-    SAFE = "SAFE"
-    NEAR = "NEAR"
-    VERY_CLOSE = "VERY CLOSE"
 
 
 @dataclass(frozen=True)
@@ -161,33 +161,6 @@ def create_depth_pipeline() -> tuple[dai.Pipeline, float]:
     return pipeline, max_disparity
 
 
-def normalize_disparity_frame(
-    disparity_frame: NDArray[np.uint8],
-    max_disparity: float,
-) -> NDArray[np.uint8]:
-    """Normalize a raw disparity frame to the 0-255 range for visualization."""
-
-    if max_disparity <= 0.0:
-        msg = "max_disparity must be greater than zero"
-        raise ValueError(msg)
-
-    normalized_frame = disparity_frame.astype(np.float32) * (255.0 / max_disparity)
-    normalized_frame = np.clip(normalized_frame, 0, 255)
-
-    return normalized_frame.astype(np.uint8)
-
-
-def colorize_disparity_frame(
-    disparity_frame: NDArray[np.uint8],
-    max_disparity: float,
-) -> NDArray[np.uint8]:
-    """Convert a raw disparity frame into a colorful OpenCV visualization."""
-
-    normalized_frame = normalize_disparity_frame(disparity_frame, max_disparity)
-
-    return cv2.applyColorMap(normalized_frame, cv2.COLORMAP_JET)
-
-
 def extract_center_roi(
     frame: NDArray[np.uint8],
     roi_scale: float,
@@ -209,53 +182,6 @@ def extract_center_roi(
     y2 = y1 + roi_height
 
     return frame[y1:y2, x1:x2]
-
-
-def compute_mean_disparity(frame: NDArray[np.uint8]) -> float:
-    """Compute the mean disparity while ignoring zero values."""
-
-    valid_pixels = frame[frame > 0]
-
-    if valid_pixels.size == 0:
-        return 0.0
-
-    return float(np.mean(valid_pixels))
-
-
-def classify_proximity(
-    mean_disparity: float,
-    near_threshold: float,
-    very_close_threshold: float,
-) -> ProximityLevel:
-    """Classify proximity based on mean disparity."""
-
-    if near_threshold < 0.0 or very_close_threshold < 0.0:
-        msg = "thresholds must be non-negative"
-        raise ValueError(msg)
-
-    if very_close_threshold <= near_threshold:
-        msg = "very_close_threshold must be greater than near_threshold"
-        raise ValueError(msg)
-
-    if mean_disparity >= very_close_threshold:
-        return ProximityLevel.VERY_CLOSE
-
-    if mean_disparity >= near_threshold:
-        return ProximityLevel.NEAR
-
-    return ProximityLevel.SAFE
-
-
-def get_alert_color(level: ProximityLevel) -> tuple[int, int, int]:
-    """Return an OpenCV BGR color for a proximity level."""
-
-    if level is ProximityLevel.VERY_CLOSE:
-        return (0, 0, 255)
-
-    if level is ProximityLevel.NEAR:
-        return (0, 165, 255)
-
-    return (0, 255, 0)
 
 
 def draw_center_roi(
