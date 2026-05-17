@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from oak_vision_lab.demos.depth_map_viewer import normalize_disparity_frame
+from oak_vision_lab.depth.disparity import normalize_disparity_frame
 
 
 def test_normalize_disparity_frame_returns_uint8_frame() -> None:
