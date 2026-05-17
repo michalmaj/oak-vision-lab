@@ -40,15 +40,17 @@ Projekt ma trzy główne zastosowania:
 | 003 | Depth Map Viewer | Kolorowa wizualizacja dysparycji stereo pokazująca informację podobną do głębi w czasie rzeczywistym. | [EN](examples/003_depth_map_viewer/README.md) / [PL](examples/003_depth_map_viewer/README.pl.md) |
 | 004 | RGB + Depth Split-Screen | Widok dzielony w czasie rzeczywistym porównujący zwykły obraz RGB z kolorową wizualizacją dysparycji stereo. | [EN](examples/004_rgb_depth_split_screen/README.md) / [PL](examples/004_rgb_depth_split_screen/README.pl.md) |
 | 005 | Depth Proximity Alert | Interaktywne demo oparte na dysparycji, które reaguje, gdy obiekt zbliża się do środka obrazu z kamery. | [EN](examples/005_depth_proximity_alert/README.md) / [PL](examples/005_depth_proximity_alert/README.pl.md) |
+| 006 | Depth Hot Zone Game | Mini-gra w czasie rzeczywistym, w której gracz zdobywa punkty, przesuwając rękę lub obiekt do strefy aktywnej opartej na dysparycji. | [EN](examples/006_depth_hot_zone_game/README.md) / [PL](examples/006_depth_hot_zone_game/README.pl.md) |
 
 ## Planowane demonstracje
 
-- Widok dzielony RGB + depth
+- Gra z ruchomym celem opartym na głębi
+- Gra refleksowa z wieloma strefami
+- Tryb prezentacyjny RGB + depth
 - Detekcja obiektów
 - Licznik osób
 - Interakcja za pomocą dłoni
 - Sterowanie interfejsem gestami
-- Mini gry oparte na computer vision
 
 ## Sposób pracy nad projektem
 

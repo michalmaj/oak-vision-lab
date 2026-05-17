@@ -40,15 +40,17 @@ The project is designed as:
 | 003 | Depth Map Viewer | Colorful stereo disparity visualization showing depth-like scene structure in real time. | [EN](examples/003_depth_map_viewer/README.md) / [PL](examples/003_depth_map_viewer/README.pl.md) |
 | 004 | RGB + Depth Split-Screen | Real-time split-screen view comparing regular RGB preview with colorful stereo disparity visualization. | [EN](examples/004_rgb_depth_split_screen/README.md) / [PL](examples/004_rgb_depth_split_screen/README.pl.md) |
 | 005 | Depth Proximity Alert | Interactive disparity-based alert demo that reacts when an object gets close to the center of the camera view. | [EN](examples/005_depth_proximity_alert/README.md) / [PL](examples/005_depth_proximity_alert/README.pl.md) |
+| 006 | Depth Hot Zone Game | Real-time mini-game where the player scores points by moving a hand or object into a depth-based hot zone. | [EN](examples/006_depth_hot_zone_game/README.md) / [PL](examples/006_depth_hot_zone_game/README.pl.md) |
 
 ## Planned demos
 
-- RGB + depth split-screen viewer
+- Moving depth target game
+- Multi-zone reaction game
+- RGB + depth presentation mode
 - Object detection demo
 - People counter
 - Hand interaction demo
 - Gesture-controlled interface
-- Computer vision mini-games
 
 ## Project workflow
 
