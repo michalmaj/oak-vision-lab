@@ -1,10 +1,8 @@
 import numpy as np
 import pytest
 
-from oak_vision_lab.demos.rgb_depth_split_screen import (
-    normalize_disparity_frame,
-    resize_to_height,
-)
+from oak_vision_lab.demos.rgb_depth_split_screen import resize_to_height
+from oak_vision_lab.depth.disparity import normalize_disparity_frame
 
 
 def test_normalize_disparity_frame_returns_uint8_frame() -> None:

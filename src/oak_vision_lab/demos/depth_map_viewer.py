@@ -6,78 +6,10 @@ import time
 
 import cv2
 import depthai as dai
-import numpy as np
-from numpy.typing import NDArray
 
+from oak_vision_lab.depth.camera import create_stereo_disparity_pipeline
+from oak_vision_lab.depth.disparity import colorize_disparity_frame
 from oak_vision_lab.visualization.hud import HudConfig, build_hud_lines
-
-
-def get_camera_socket(name: str, fallback_name: str) -> dai.CameraBoardSocket:
-    """Get a camera socket while supporting older and newer DepthAI naming styles."""
-
-    if hasattr(dai.CameraBoardSocket, name):
-        return getattr(dai.CameraBoardSocket, name)
-
-    return getattr(dai.CameraBoardSocket, fallback_name)
-
-
-def create_depth_pipeline() -> tuple[dai.Pipeline, float]:
-    """Create a DepthAI v2 stereo disparity pipeline."""
-
-    pipeline = dai.Pipeline()
-
-    left_camera = pipeline.create(dai.node.MonoCamera)
-    right_camera = pipeline.create(dai.node.MonoCamera)
-    stereo = pipeline.create(dai.node.StereoDepth)
-    output = pipeline.create(dai.node.XLinkOut)
-
-    output.setStreamName("disparity")
-
-    left_camera.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
-    right_camera.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
-
-    left_camera.setBoardSocket(get_camera_socket("LEFT", "CAM_B"))
-    right_camera.setBoardSocket(get_camera_socket("RIGHT", "CAM_C"))
-
-    stereo.setDefaultProfilePreset(dai.node.StereoDepth.PresetMode.HIGH_DENSITY)
-    stereo.setLeftRightCheck(True)
-    stereo.setExtendedDisparity(False)
-    stereo.setSubpixel(False)
-
-    left_camera.out.link(stereo.left)
-    right_camera.out.link(stereo.right)
-    stereo.disparity.link(output.input)
-
-    max_disparity = stereo.initialConfig.getMaxDisparity()
-
-    return pipeline, max_disparity
-
-
-def normalize_disparity_frame(
-    disparity_frame: NDArray[np.uint8],
-    max_disparity: float,
-) -> NDArray[np.uint8]:
-    """Normalize a raw disparity frame to the 0-255 range for visualization."""
-
-    if max_disparity <= 0.0:
-        msg = "max_disparity must be greater than zero"
-        raise ValueError(msg)
-
-    normalized_frame = disparity_frame.astype(np.float32) * (255.0 / max_disparity)
-    normalized_frame = np.clip(normalized_frame, 0, 255)
-
-    return normalized_frame.astype(np.uint8)
-
-
-def colorize_disparity_frame(
-    disparity_frame: NDArray[np.uint8],
-    max_disparity: float,
-) -> NDArray[np.uint8]:
-    """Convert a raw disparity frame into a colorful OpenCV visualization."""
-
-    normalized_frame = normalize_disparity_frame(disparity_frame, max_disparity)
-
-    return cv2.applyColorMap(normalized_frame, cv2.COLORMAP_JET)
 
 
 def draw_hud(
@@ -127,7 +59,7 @@ def run_depth_map_viewer() -> None:
     previous_time = time.perf_counter()
     fps = 0.0
 
-    pipeline, max_disparity = create_depth_pipeline()
+    pipeline, max_disparity = create_stereo_disparity_pipeline()
 
     with dai.Device(pipeline) as device:
         print(f"MXID: {device.getMxId()}")

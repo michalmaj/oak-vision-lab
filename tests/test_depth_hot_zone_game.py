@@ -3,16 +3,20 @@ import pytest
 
 from oak_vision_lab.demos.depth_hot_zone_game import (
     HotZoneGameConfig,
-    ProximityLevel,
-    classify_proximity,
-    compute_mean_disparity,
     create_initial_game_state,
     extract_center_roi,
     get_time_left,
     is_game_finished,
-    normalize_disparity_frame,
     should_award_points,
     update_game_state,
+)
+from oak_vision_lab.depth.disparity import (
+    compute_mean_disparity,
+    normalize_disparity_frame,
+)
+from oak_vision_lab.depth.proximity import (
+    ProximityLevel,
+    classify_proximity,
 )
 
 
