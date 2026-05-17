@@ -1,12 +1,14 @@
 import numpy as np
 import pytest
 
-from oak_vision_lab.demos.depth_proximity_alert import (
+from oak_vision_lab.demos.depth_proximity_alert import extract_center_roi
+from oak_vision_lab.depth.disparity import (
+    compute_mean_disparity,
+    normalize_disparity_frame,
+)
+from oak_vision_lab.depth.proximity import (
     ProximityLevel,
     classify_proximity,
-    compute_mean_disparity,
-    extract_center_roi,
-    normalize_disparity_frame,
 )
 
 
