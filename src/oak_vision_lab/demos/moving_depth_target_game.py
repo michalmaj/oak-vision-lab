@@ -21,6 +21,19 @@ from oak_vision_lab.depth.proximity import (
     classify_proximity,
     get_alert_color,
 )
+from oak_vision_lab.game.scoring import (
+    add_points,
+    is_scoring_level,
+)
+from oak_vision_lab.game.scoring import (
+    should_award_points as should_award_scoring_points,
+)
+from oak_vision_lab.game.timing import (
+    get_time_left as get_timer_time_left,
+)
+from oak_vision_lab.game.timing import (
+    is_timer_finished,
+)
 from oak_vision_lab.visualization.hud import HudConfig, build_hud_lines
 
 
@@ -117,9 +130,11 @@ def get_time_left(
 ) -> float:
     """Return remaining game time in seconds."""
 
-    elapsed_time = current_time - state.start_time
-
-    return max(0.0, config.duration_seconds - elapsed_time)
+    return get_timer_time_left(
+        start_time=state.start_time,
+        duration_seconds=config.duration_seconds,
+        current_time=current_time,
+    )
 
 
 def is_game_finished(
@@ -129,13 +144,23 @@ def is_game_finished(
 ) -> bool:
     """Check whether the game timer has finished."""
 
-    return get_time_left(state, config, current_time) <= 0.0
+    return is_timer_finished(
+        start_time=state.start_time,
+        duration_seconds=config.duration_seconds,
+        current_time=current_time,
+    )
+
+
+SCORING_PROXIMITY_LEVELS = {
+    ProximityLevel.NEAR,
+    ProximityLevel.VERY_CLOSE,
+}
 
 
 def is_scoring_proximity(level: ProximityLevel) -> bool:
     """Check whether the current proximity level should award points."""
 
-    return level in {ProximityLevel.NEAR, ProximityLevel.VERY_CLOSE}
+    return is_scoring_level(level, SCORING_PROXIMITY_LEVELS)
 
 
 def should_award_points(
@@ -146,15 +171,14 @@ def should_award_points(
 ) -> bool:
     """Check whether points should be awarded for the current frame."""
 
-    if is_game_finished(state, config, current_time):
-        return False
-
-    if not is_scoring_proximity(level):
-        return False
-
-    time_since_last_hit = current_time - state.last_hit_time
-
-    return time_since_last_hit >= config.hit_cooldown_seconds
+    return should_award_scoring_points(
+        level=level,
+        scoring_levels=SCORING_PROXIMITY_LEVELS,
+        is_finished=is_game_finished(state, config, current_time),
+        last_hit_time=state.last_hit_time,
+        cooldown_seconds=config.hit_cooldown_seconds,
+        current_time=current_time,
+    )
 
 
 def update_game_state(
@@ -173,7 +197,10 @@ def update_game_state(
 
     updated_state = replace(
         state,
-        score=state.score + config.points_per_hit,
+        score=add_points(
+            current_score=state.score,
+            points=config.points_per_hit,
+        ),
         last_hit_time=current_time,
         target=next_target,
     )
