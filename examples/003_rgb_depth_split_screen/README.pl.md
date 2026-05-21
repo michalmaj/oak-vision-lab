@@ -64,7 +64,7 @@ Z katalogu głównego repozytorium:
 
 ```bash
 uv sync
-uv run python examples/004_rgb_depth_split_screen/run.py
+uv run python examples/003_rgb_depth_split_screen/run.py
 ```
 
 ## Sterowanie
