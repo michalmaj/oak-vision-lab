@@ -54,7 +54,7 @@ Z katalogu głównego repozytorium:
 
 ```bash
 uv sync
-uv run python examples/002_camera_preview_hud/run.py
+uv run python examples/001_camera_preview_hud/run.py
 ```
 
 ## Sterowanie

@@ -36,7 +36,7 @@ Projekt ma trzy główne zastosowania:
 
 | Nr | Demo | Opis | Dokumentacja |
 | --- | --- | --- | --- |
-| 002 | Camera Preview HUD | Podgląd obrazu RGB w czasie rzeczywistym z FPS, statusem strumienia i HUD-em sterowanym z klawiatury. | [EN](examples/002_camera_preview_hud/README.md) / [PL](examples/002_camera_preview_hud/README.pl.md) |
+| 002 | Camera Preview HUD | Podgląd obrazu RGB w czasie rzeczywistym z FPS, statusem strumienia i HUD-em sterowanym z klawiatury. | [EN](examples/001_camera_preview_hud/README.md) / [PL](examples/001_camera_preview_hud/README.pl.md) |
 | 003 | Depth Map Viewer | Kolorowa wizualizacja dysparycji stereo pokazująca informację podobną do głębi w czasie rzeczywistym. | [EN](examples/003_depth_map_viewer/README.md) / [PL](examples/003_depth_map_viewer/README.pl.md) |
 | 004 | RGB + Depth Split-Screen | Widok dzielony w czasie rzeczywistym porównujący zwykły obraz RGB z kolorową wizualizacją dysparycji stereo. | [EN](examples/004_rgb_depth_split_screen/README.md) / [PL](examples/004_rgb_depth_split_screen/README.pl.md) |
 | 005 | Depth Proximity Alert | Interaktywne demo oparte na dysparycji, które reaguje, gdy obiekt zbliża się do środka obrazu z kamery. | [EN](examples/005_depth_proximity_alert/README.md) / [PL](examples/005_depth_proximity_alert/README.pl.md) |
