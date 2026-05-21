@@ -60,7 +60,7 @@ Z katalogu głównego repozytorium:
 
 ```bash
 uv sync
-uv run python examples/003_depth_map_viewer/run.py
+uv run python examples/002_depth_map_viewer/run.py
 ```
 
 ## Sterowanie

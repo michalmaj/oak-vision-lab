@@ -87,7 +87,7 @@ Z katalogu głównego repozytorium:
 
 ```bash
 uv sync
-uv run python examples/005_depth_proximity_alert/run.py
+uv run python examples/004_depth_proximity_alert/run.py
 ```
 
 ## Sterowanie

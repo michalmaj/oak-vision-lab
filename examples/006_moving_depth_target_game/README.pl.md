@@ -77,7 +77,7 @@ Z katalogu głównego repozytorium:
 
 ```bash
 uv sync
-uv run python examples/007_moving_depth_target_game/run.py
+uv run python examples/006_moving_depth_target_game/run.py
 ```
 
 ## Sterowanie

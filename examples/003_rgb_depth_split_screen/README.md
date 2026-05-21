@@ -64,7 +64,7 @@ From the repository root:
 
 ```bash
 uv sync
-uv run python examples/004_rgb_depth_split_screen/run.py
+uv run python examples/003_rgb_depth_split_screen/run.py
 ```
 
 ## Controls
