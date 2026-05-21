@@ -36,12 +36,13 @@ The project is designed as:
 
 | No. | Demo | Description | Documentation |
 | --- | --- | --- | --- |
-| 002 | Camera Preview HUD | Real-time RGB camera preview with FPS, status text and keyboard-controlled HUD. | [EN](examples/001_camera_preview_hud/README.md) / [PL](examples/001_camera_preview_hud/README.pl.md) |
-| 003 | Depth Map Viewer | Colorful stereo disparity visualization showing depth-like scene structure in real time. | [EN](examples/002_depth_map_viewer/README.md) / [PL](examples/002_depth_map_viewer/README.pl.md) |
-| 004 | RGB + Depth Split-Screen | Real-time split-screen view comparing regular RGB preview with colorful stereo disparity visualization. | [EN](examples/003_rgb_depth_split_screen/README.md) / [PL](examples/003_rgb_depth_split_screen/README.pl.md) |
-| 005 | Depth Proximity Alert | Interactive disparity-based alert demo that reacts when an object gets close to the center of the camera view. | [EN](examples/004_depth_proximity_alert/README.md) / [PL](examples/004_depth_proximity_alert/README.pl.md) |
-| 006 | Depth Hot Zone Game | Real-time mini-game where the player scores points by moving a hand or object into a depth-based hot zone. | [EN](examples/005_depth_hot_zone_game/README.md) / [PL](examples/005_depth_hot_zone_game/README.pl.md) |
-| 007 | Moving Depth Target Game | Real-time mini-game where the player scores points by reaching randomly positioned depth-based target zones. | [EN](examples/006_moving_depth_target_game/README.md) / [PL](examples/006_moving_depth_target_game/README.pl.md) |
+| 001 | Camera Preview HUD | Real-time RGB camera preview with FPS, status text and keyboard-controlled HUD. | [EN](examples/001_camera_preview_hud/README.md) / [PL](examples/001_camera_preview_hud/README.pl.md) |
+| 002 | Depth Map Viewer | Colorful stereo disparity visualization showing depth-like scene structure in real time. | [EN](examples/002_depth_map_viewer/README.md) / [PL](examples/002_depth_map_viewer/README.pl.md) |
+| 003 | RGB + Depth Split-Screen | Real-time split-screen view comparing regular RGB preview with colorful stereo disparity visualization. | [EN](examples/003_rgb_depth_split_screen/README.md) / [PL](examples/003_rgb_depth_split_screen/README.pl.md) |
+| 004 | Depth Proximity Alert | Interactive disparity-based alert demo that reacts when an object gets close to the center of the camera view. | [EN](examples/004_depth_proximity_alert/README.md) / [PL](examples/004_depth_proximity_alert/README.pl.md) |
+| 005 | Depth Hot Zone Game | Real-time mini-game where the player scores points by moving a hand or object into a depth-based hot zone. | [EN](examples/005_depth_hot_zone_game/README.md) / [PL](examples/005_depth_hot_zone_game/README.pl.md) |
+| 006 | Moving Depth Target Game | Real-time mini-game where the player scores points by reaching randomly positioned depth-based target zones. | [EN](examples/006_moving_depth_target_game/README.md) / [PL](examples/006_moving_depth_target_game/README.pl.md) |
+| 007 | Multi-Zone Reaction Game | Real-time reaction game where the player scores points by reaching the currently active depth-based zone. | [EN](examples/007_multi_zone_reaction_game/README.md) / [PL](examples/007_multi_zone_reaction_game/README.pl.md) |
 
 ## Planned demos
 
