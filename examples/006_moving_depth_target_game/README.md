@@ -77,7 +77,7 @@ From the repository root:
 
 ```bash
 uv sync
-uv run python examples/007_moving_depth_target_game/run.py
+uv run python examples/006_moving_depth_target_game/run.py
 ```
 
 ## Controls
