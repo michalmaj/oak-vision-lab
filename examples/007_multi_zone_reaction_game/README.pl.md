@@ -84,7 +84,7 @@ Z katalogu głównego repozytorium:
 
 ```bash
 uv sync
-uv run python examples/011_multi_zone_reaction_game/run.py
+uv run python examples/007_multi_zone_reaction_game/run.py
 ```
 
 ## Sterowanie
