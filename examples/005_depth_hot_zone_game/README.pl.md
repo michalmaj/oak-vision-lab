@@ -78,7 +78,7 @@ Z katalogu głównego repozytorium:
 
 ```bash
 uv sync
-uv run python examples/006_depth_hot_zone_game/run.py
+uv run python examples/005_depth_hot_zone_game/run.py
 ```
 
 ## Sterowanie
