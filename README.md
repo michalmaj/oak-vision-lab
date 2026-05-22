@@ -110,6 +110,49 @@ Format code:
 uv run ruff format .
 ```
 
+## Makefile shortcuts
+
+The project can be used directly with `uv`, but a `Makefile` is also provided as a convenience layer for common development commands and demo runs.
+
+The Makefile does not replace `uv`. It only wraps common `uv` commands.
+
+List available shortcuts:
+
+```bash
+make help
+```
+
+Install or sync dependencies:
+
+```bash
+make sync
+```
+
+Run quality checks:
+
+```bash
+make check
+```
+
+List available demos:
+
+```bash
+make demos
+```
+
+Run a demo:
+
+```bash
+make demo-001
+make demo-007
+```
+
+Direct `uv` commands remain the most explicit way to run demos, for example:
+
+```bash
+uv run python examples/007_multi_zone_reaction_game/run.py
+```
+
 ## Hardware and DepthAI compatibility
 
 This project currently targets classic OAK-D / RVC2 devices and uses DepthAI v2.

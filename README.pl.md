@@ -110,6 +110,49 @@ Formatowanie kodu:
 uv run ruff format .
 ```
 
+## Skróty Makefile
+
+Projekt można obsługiwać bezpośrednio przez `uv`, ale dostępny jest także `Makefile` jako wygodna warstwa skrótów do typowych komend developerskich i uruchamiania dem.
+
+Makefile nie zastępuje `uv`. Jest jedynie cienką warstwą wywołującą typowe komendy `uv`.
+
+Lista dostępnych skrótów:
+
+```bash
+make help
+```
+
+Instalacja lub synchronizacja zależności:
+
+```bash
+make sync
+```
+
+Uruchomienie kontroli jakości:
+
+```bash
+make check
+```
+
+Lista dostępnych demonstracji:
+
+```bash
+make demos
+```
+
+Uruchomienie dema:
+
+```bash
+make demo-001
+make demo-007
+```
+
+Bezpośrednie komendy `uv` pozostają najbardziej jawny sposobem uruchamiania dem, na przykład:
+
+```bash
+uv run python examples/007_multi_zone_reaction_game/run.py
+```
+
 ## Kompatybilność sprzętowa i DepthAI
 
 Projekt jest obecnie rozwijany z myślą o klasycznych kamerach OAK-D / urządzeniach RVC2 i używa DepthAI v2.
