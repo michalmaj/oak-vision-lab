@@ -1,9 +1,11 @@
 from oak_vision_lab.diagnostics import (
     DiagnosticCheck,
     are_all_checks_passing,
+    check_depthai_device,
     check_package_import,
     check_python_version,
     format_doctor_report,
+    run_doctor_checks,
 )
 
 
@@ -78,3 +80,46 @@ def test_format_doctor_report_contains_failure_summary() -> None:
 
     assert "[FAIL] DepthAI" in report
     assert "environment has problems" in report
+
+
+def test_check_depthai_device_returns_ok_when_device_exists() -> None:
+    result = check_depthai_device(device_count_provider=lambda: 1)
+
+    assert result.name == "OAK-D device"
+    assert result.ok
+    assert "available devices: 1" in result.details
+
+
+def test_check_depthai_device_returns_failure_when_no_device_exists() -> None:
+    result = check_depthai_device(device_count_provider=lambda: 0)
+
+    assert result.name == "OAK-D device"
+    assert not result.ok
+    assert "no DepthAI devices found" in result.details
+
+
+def test_check_depthai_device_returns_failure_when_provider_fails() -> None:
+    def failing_provider() -> int:
+        msg = "USB error"
+        raise RuntimeError(msg)
+
+    result = check_depthai_device(device_count_provider=failing_provider)
+
+    assert result.name == "OAK-D device"
+    assert not result.ok
+    assert "device check failed" in result.details
+
+
+def test_run_doctor_checks_can_include_device_check(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "oak_vision_lab.diagnostics.check_depthai_device",
+        lambda: DiagnosticCheck(
+            name="OAK-D device",
+            ok=True,
+            details="available devices: 1",
+        ),
+    )
+
+    checks = run_doctor_checks(include_device_check=True)
+
+    assert checks[-1].name == "OAK-D device"

@@ -46,3 +46,19 @@ def test_main_doctor_prints_diagnostic_report(capsys) -> None:
     assert exit_code == 0
     assert "oak-vision-lab environment doctor" in captured.out
     assert "Checks:" in captured.out
+
+
+def test_main_doctor_with_device_flag_prints_diagnostic_report(
+    capsys, monkeypatch
+) -> None:
+    monkeypatch.setattr(
+        "oak_vision_lab.cli.run_doctor_checks",
+        lambda include_device_check=False: [],
+    )
+
+    exit_code = main(["doctor", "--device"])
+
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "oak-vision-lab environment doctor" in captured.out
