@@ -140,6 +140,12 @@ Lista dostępnych demonstracji:
 make demos
 ```
 
+Uruchomienie diagnostyki środowiska:
+
+```bash
+make doctor
+```
+
 Uruchomienie dema:
 
 ```bash
@@ -168,6 +174,14 @@ Lista dostępnych demonstracji:
 ```bash
 uv run oakvl list
 ```
+
+Sprawdzenie lokalnego środowiska:
+
+```bash
+uv run oakvl doctor
+```
+
+Komenda doctor sprawdza wersję Pythona oraz to, czy kluczowe pakiety, takie jak DepthAI, OpenCV, NumPy, pytest i Ruff, mogą zostać zaimportowane.
 
 Szczegóły wybranego dema:
 
