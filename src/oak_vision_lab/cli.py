@@ -7,6 +7,7 @@ import importlib
 from collections.abc import Sequence
 
 from oak_vision_lab.demo_registry import DemoEntry, list_demos, resolve_demo
+from oak_vision_lab.diagnostics import format_doctor_report, run_doctor_checks
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -40,6 +41,11 @@ def build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument(
         "demo",
         help="Demo number or slug, for example: 007 or multi-zone-reaction-game.",
+    )
+
+    subparsers.add_parser(
+        "doctor",
+        help="Check the local software environment.",
     )
 
     return parser
@@ -102,6 +108,10 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if args.command == "list":
         print(format_demo_list(list_demos()))
+        return 0
+
+    if args.command == "doctor":
+        print(format_doctor_report(run_doctor_checks()))
         return 0
 
     if args.command == "info":

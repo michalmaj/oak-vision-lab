@@ -147,6 +147,12 @@ make demo-001
 make demo-007
 ```
 
+Run environment diagnostics:
+
+```bash
+make doctor
+```
+
 Direct `uv` commands remain the most explicit way to run demos, for example:
 
 ```bash
@@ -168,6 +174,14 @@ List available demos:
 ```bash
 uv run oakvl list
 ```
+
+Check the local software environment:
+
+```bash
+uv run oakvl doctor
+```
+
+The doctor command verifies the Python version and checks whether key packages such as DepthAI, OpenCV, NumPy, pytest and Ruff can be imported.
 
 Show details about a selected demo:
 
