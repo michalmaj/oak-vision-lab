@@ -15,6 +15,7 @@ dependencies = [
 
 [project.scripts]
 oak-vision-lab = "oak_vision_lab:main"
+oakvl = "oak_vision_lab.cli:main"
 
 [build-system]
 requires = ["uv_build>=0.10.12,<0.11.0"]
