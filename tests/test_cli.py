@@ -36,3 +36,13 @@ def test_main_info_prints_demo_info(capsys) -> None:
     assert exit_code == 0
     assert "Camera Preview HUD" in captured.out
     assert "uv run oakvl run 001" in captured.out
+
+
+def test_main_doctor_prints_diagnostic_report(capsys) -> None:
+    exit_code = main(["doctor"])
+
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "oak-vision-lab environment doctor" in captured.out
+    assert "Checks:" in captured.out
