@@ -1,0 +1,71 @@
+.PHONY: sync format lint test check \
+	demo-001 demo-002 demo-003 demo-004 demo-005 demo-006 demo-007 \
+	demos help
+
+sync:
+	uv sync
+
+format:
+	uv run ruff format .
+
+lint:
+	uv run ruff check .
+
+test:
+	uv run pytest
+
+check:
+	uv run ruff format --check .
+	uv run ruff check .
+	uv run pytest
+
+demo-001:
+	uv run python examples/001_camera_preview_hud/run.py
+
+demo-002:
+	uv run python examples/002_depth_map_viewer/run.py
+
+demo-003:
+	uv run python examples/003_rgb_depth_split_screen/run.py
+
+demo-004:
+	uv run python examples/004_depth_proximity_alert/run.py
+
+demo-005:
+	uv run python examples/005_depth_hot_zone_game/run.py
+
+demo-006:
+	uv run python examples/006_moving_depth_target_game/run.py
+
+demo-007:
+	uv run python examples/007_multi_zone_reaction_game/run.py
+
+demos:
+	@echo "Available demos:"
+	@echo "  make demo-001  Camera Preview HUD"
+	@echo "  make demo-002  Depth Map Viewer"
+	@echo "  make demo-003  RGB + Depth Split-Screen"
+	@echo "  make demo-004  Depth Proximity Alert"
+	@echo "  make demo-005  Depth Hot Zone Game"
+	@echo "  make demo-006  Moving Depth Target Game"
+	@echo "  make demo-007  Multi-Zone Reaction Game"
+
+help:
+	@echo "oak-vision-lab Makefile shortcuts"
+	@echo ""
+	@echo "Development:"
+	@echo "  make sync      Install/sync dependencies"
+	@echo "  make format    Format code with Ruff"
+	@echo "  make lint      Run Ruff lint checks"
+	@echo "  make test      Run pytest"
+	@echo "  make check     Run formatting check, lint and tests"
+	@echo ""
+	@echo "Demos:"
+	@echo "  make demos     List available demos"
+	@echo "  make demo-001  Run Camera Preview HUD"
+	@echo "  make demo-002  Run Depth Map Viewer"
+	@echo "  make demo-003  Run RGB + Depth Split-Screen"
+	@echo "  make demo-004  Run Depth Proximity Alert"
+	@echo "  make demo-005  Run Depth Hot Zone Game"
+	@echo "  make demo-006  Run Moving Depth Target Game"
+	@echo "  make demo-007  Run Multi-Zone Reaction Game"
