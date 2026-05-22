@@ -153,6 +153,53 @@ Direct `uv` commands remain the most explicit way to run demos, for example:
 uv run python examples/007_multi_zone_reaction_game/run.py
 ```
 
+## CLI demo runner
+
+The project also provides a small command line interface for listing, inspecting and running demos.
+
+The CLI is available through the `oakvl` command:
+
+```bash
+uv run oakvl --help
+```
+
+List available demos:
+
+```bash
+uv run oakvl list
+```
+
+Show details about a selected demo:
+
+```bash
+uv run oakvl info 001
+uv run oakvl info multi-zone-reaction-game
+```
+
+Run a demo by number:
+
+```bash
+uv run oakvl run 001
+```
+
+Run a demo by slug:
+
+```bash
+uv run oakvl run multi-zone-reaction-game
+```
+
+Each demo can now be run in three ways:
+
+```bash
+uv run oakvl run 007
+uv run python examples/007_multi_zone_reaction_game/run.py
+make demo-007
+```
+
+The direct `uv run python examples/.../run.py` form remains useful for teaching because it clearly shows where the example entry point is located.
+
+The `oakvl` CLI is the most stable interface for regular use because demo names can stay consistent even if internal paths change later.
+
 ## Hardware and DepthAI compatibility
 
 This project currently targets classic OAK-D / RVC2 devices and uses DepthAI v2.
