@@ -5,8 +5,10 @@ from __future__ import annotations
 import importlib
 import platform
 import sys
+from collections.abc import Callable
 from dataclasses import dataclass
 from importlib.metadata import PackageNotFoundError, version
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -74,10 +76,13 @@ def check_package_import(
     )
 
 
-def run_doctor_checks() -> list[DiagnosticCheck]:
-    """Run software environment diagnostics."""
+def run_doctor_checks(
+    *,
+    include_device_check: bool = False,
+) -> list[DiagnosticCheck]:
+    """Run environment diagnostics."""
 
-    return [
+    checks = [
         check_python_version(),
         check_package_import(
             display_name="DepthAI",
@@ -105,6 +110,11 @@ def run_doctor_checks() -> list[DiagnosticCheck]:
             package_name="ruff",
         ),
     ]
+
+    if include_device_check:
+        checks.append(check_depthai_device())
+
+    return checks
 
 
 def are_all_checks_passing(checks: list[DiagnosticCheck]) -> bool:
@@ -137,3 +147,54 @@ def format_doctor_report(checks: list[DiagnosticCheck]) -> str:
         lines.append("Result: environment has problems that need attention.")
 
     return "\n".join(lines)
+
+
+def get_depthai_device_count(depthai_module: Any) -> int:
+    """Return the number of available DepthAI devices."""
+
+    if hasattr(depthai_module.Device, "getAllAvailableDevices"):
+        devices = depthai_module.Device.getAllAvailableDevices()
+        return len(devices)
+
+    if hasattr(depthai_module, "XLinkConnection") and hasattr(
+        depthai_module.XLinkConnection,
+        "getAllConnectedDevices",
+    ):
+        devices = depthai_module.XLinkConnection.getAllConnectedDevices()
+        return len(devices)
+
+    msg = "DepthAI device discovery API is not available"
+    raise RuntimeError(msg)
+
+
+def check_depthai_device(
+    *,
+    device_count_provider: Callable[[], int] | None = None,
+) -> DiagnosticCheck:
+    """Check whether at least one DepthAI device is available."""
+
+    try:
+        if device_count_provider is None:
+            depthai_module = importlib.import_module("depthai")
+            device_count = get_depthai_device_count(depthai_module)
+        else:
+            device_count = device_count_provider()
+    except Exception as error:
+        return DiagnosticCheck(
+            name="OAK-D device",
+            ok=False,
+            details=f"device check failed: {error}",
+        )
+
+    if device_count <= 0:
+        return DiagnosticCheck(
+            name="OAK-D device",
+            ok=False,
+            details="no DepthAI devices found",
+        )
+
+    return DiagnosticCheck(
+        name="OAK-D device",
+        ok=True,
+        details=f"available devices: {device_count}",
+    )

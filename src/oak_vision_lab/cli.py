@@ -43,9 +43,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="Demo number or slug, for example: 007 or multi-zone-reaction-game.",
     )
 
-    subparsers.add_parser(
+    doctor_parser = subparsers.add_parser(
         "doctor",
-        help="Check the local software environment.",
+        help="Check the local environment.",
+    )
+    doctor_parser.add_argument(
+        "--device",
+        action="store_true",
+        help="Also check whether an OAK-D / DepthAI device is available.",
     )
 
     return parser
@@ -111,7 +116,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
 
     if args.command == "doctor":
-        print(format_doctor_report(run_doctor_checks()))
+        print(format_doctor_report(run_doctor_checks(include_device_check=args.device)))
         return 0
 
     if args.command == "info":
