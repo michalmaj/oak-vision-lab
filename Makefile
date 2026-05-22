@@ -2,7 +2,8 @@
 	demo-001 demo-002 demo-003 demo-004 demo-005 demo-006 demo-007 \
 	demos help \
 	cli-list cli-info-001 cli-info-007 \
-	doctor
+	doctor \
+	doctor-device
 
 sync:
 	uv sync
@@ -54,6 +55,9 @@ cli-info-007:
 doctor:
 	uv run oakvl doctor
 
+doctor-device:
+	uv run oakvl doctor --device
+
 demos:
 	@echo "Available demos:"
 	@echo "  make demo-001  Camera Preview HUD"
@@ -89,3 +93,4 @@ help:
 	@echo "  make cli-info-001  Show CLI info for demo 001"
 	@echo "  make cli-info-007  Show CLI info for demo 007"
 	@echo "  make doctor        Run software environment diagnostics"
+	@echo "  make doctor-device Run diagnostics including OAK-D device discovery"
