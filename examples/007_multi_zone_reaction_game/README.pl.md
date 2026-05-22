@@ -80,11 +80,30 @@ Celem gracza jest trafienie jak największej liczby aktywnych stref przed końce
 
 ## Jak uruchomić?
 
-Z katalogu głównego repozytorium:
+Z katalogu głównego repozytorium można uruchomić to demo na trzy sposoby.
+
+Rekomendowana komenda CLI:
 
 ```bash
-uv sync
+uv run oakvl run multi-zone-reaction-game
+```
+
+Można też użyć numeru dema:
+
+```bash
+uv run oakvl run 007
+```
+
+Bezpośredni punkt startowy przykładu:
+
+```bash
 uv run python examples/007_multi_zone_reaction_game/run.py
+```
+
+Skrót Makefile:
+
+```bash
+make demo-007
 ```
 
 ## Sterowanie

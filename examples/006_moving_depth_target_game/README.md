@@ -73,11 +73,30 @@ The player tries to hit as many target zones as possible before the timer ends.
 
 ## How to run
 
-From the repository root:
+From the repository root, you can run this demo in three ways.
+
+Recommended CLI command:
 
 ```bash
-uv sync
+uv run oakvl run moving-depth-target-game
+```
+
+You can also use the demo number:
+
+```bash
+uv run oakvl run 006
+```
+
+Direct example entry point:
+
+```bash
 uv run python examples/006_moving_depth_target_game/run.py
+```
+
+Makefile shortcut:
+
+```bash
+make demo-006
 ```
 
 ## Controls

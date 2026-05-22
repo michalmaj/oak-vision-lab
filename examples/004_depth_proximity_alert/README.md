@@ -83,11 +83,30 @@ The current state changes the visual alert color and the HUD status.
 
 ## How to run
 
-From the repository root:
+From the repository root, you can run this demo in three ways.
+
+Recommended CLI command:
 
 ```bash
-uv sync
+uv run oakvl run depth-proximity-alert
+```
+
+You can also use the demo number:
+
+```bash
+uv run oakvl run 004
+```
+
+Direct example entry point:
+
+```bash
 uv run python examples/004_depth_proximity_alert/run.py
+```
+
+Makefile shortcut:
+
+```bash
+make demo-004
 ```
 
 ## Controls

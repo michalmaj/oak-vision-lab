@@ -50,11 +50,30 @@ DepthAI v3 is not used in this demo because some older OAK-D devices may have co
 
 ## How to run
 
-From the repository root:
+From the repository root, you can run this demo in three ways.
+
+Recommended CLI command:
 
 ```bash
-uv sync
+uv run oakvl run camera-preview-hud
+```
+
+You can also use the demo number:
+
+```bash
+uv run oakvl run 001
+```
+
+Direct example entry point:
+
+```bash
 uv run python examples/001_camera_preview_hud/run.py
+```
+
+Makefile shortcut:
+
+```bash
+make demo-001
 ```
 
 ## Controls

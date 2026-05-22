@@ -60,11 +60,30 @@ Obraz RGB i pokolorowana dysparycja są dopasowywane rozmiarem i łączone pozio
 
 ## Jak uruchomić?
 
-Z katalogu głównego repozytorium:
+Z katalogu głównego repozytorium można uruchomić to demo na trzy sposoby.
+
+Rekomendowana komenda CLI:
 
 ```bash
-uv sync
+uv run oakvl run rgb-depth-split-screen
+```
+
+Można też użyć numeru dema:
+
+```bash
+uv run oakvl run 003
+```
+
+Bezpośredni punkt startowy przykładu:
+
+```bash
 uv run python examples/003_rgb_depth_split_screen/run.py
+```
+
+Skrót Makefile:
+
+```bash
+make demo-003
 ```
 
 ## Sterowanie

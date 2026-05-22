@@ -56,11 +56,30 @@ Surowy obraz dysparycji jest następnie skalowany do zakresu 0-255 i zamieniany 
 
 ## Jak uruchomić?
 
-Z katalogu głównego repozytorium:
+Z katalogu głównego repozytorium można uruchomić to demo na trzy sposoby.
+
+Rekomendowana komenda CLI:
 
 ```bash
-uv sync
+uv run oakvl run depth-map-viewer
+```
+
+Można też użyć numeru dema:
+
+```bash
+uv run oakvl run 002
+```
+
+Bezpośredni punkt startowy przykładu:
+
+```bash
 uv run python examples/002_depth_map_viewer/run.py
+```
+
+Skrót Makefile:
+
+```bash
+make demo-002
 ```
 
 ## Sterowanie
