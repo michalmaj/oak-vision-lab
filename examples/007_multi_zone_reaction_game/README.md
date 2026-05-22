@@ -80,11 +80,30 @@ The player tries to hit as many active zones as possible before the timer ends.
 
 ## How to run
 
-From the repository root:
+From the repository root, you can run this demo in three ways.
+
+Recommended CLI command:
 
 ```bash
-uv sync
+uv run oakvl run multi-zone-reaction-game
+```
+
+You can also use the demo number:
+
+```bash
+uv run oakvl run 007
+```
+
+Direct example entry point:
+
+```bash
 uv run python examples/007_multi_zone_reaction_game/run.py
+```
+
+Makefile shortcut:
+
+```bash
+make demo-007
 ```
 
 ## Controls

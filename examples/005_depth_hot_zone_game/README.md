@@ -74,11 +74,30 @@ For each frame:
 
 ## How to run
 
-From the repository root:
+From the repository root, you can run this demo in three ways.
+
+Recommended CLI command:
 
 ```bash
-uv sync
+uv run oakvl run depth-hot-zone-game
+```
+
+You can also use the demo number:
+
+```bash
+uv run oakvl run 005
+```
+
+Direct example entry point:
+
+```bash
 uv run python examples/005_depth_hot_zone_game/run.py
+```
+
+Makefile shortcut:
+
+```bash
+make demo-005
 ```
 
 ## Controls

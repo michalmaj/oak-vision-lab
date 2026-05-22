@@ -50,11 +50,30 @@ DepthAI v3 nie jest używane w tym demie, ponieważ starsze urządzenia OAK-D mo
 
 ## Jak uruchomić?
 
-Z katalogu głównego repozytorium:
+Z katalogu głównego repozytorium można uruchomić to demo na trzy sposoby.
+
+Rekomendowana komenda CLI:
 
 ```bash
-uv sync
+uv run oakvl run camera-preview-hud
+```
+
+Można też użyć numeru dema:
+
+```bash
+uv run oakvl run 001
+```
+
+Bezpośredni punkt startowy przykładu:
+
+```bash
 uv run python examples/001_camera_preview_hud/run.py
+```
+
+Skrót Makefile:
+
+```bash
+make demo-001
 ```
 
 ## Sterowanie

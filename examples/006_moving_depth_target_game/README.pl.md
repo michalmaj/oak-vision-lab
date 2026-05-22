@@ -73,11 +73,30 @@ Celem gracza jest trafienie jak największej liczby stref przed końcem czasu.
 
 ## Jak uruchomić?
 
-Z katalogu głównego repozytorium:
+Z katalogu głównego repozytorium można uruchomić to demo na trzy sposoby.
+
+Rekomendowana komenda CLI:
 
 ```bash
-uv sync
+uv run oakvl run moving-depth-target-game
+```
+
+Można też użyć numeru dema:
+
+```bash
+uv run oakvl run 006
+```
+
+Bezpośredni punkt startowy przykładu:
+
+```bash
 uv run python examples/006_moving_depth_target_game/run.py
+```
+
+Skrót Makefile:
+
+```bash
+make demo-006
 ```
 
 ## Sterowanie

@@ -83,11 +83,30 @@ Aktualny stan zmienia kolor alertu oraz status wyświetlany w HUD-zie.
 
 ## Jak uruchomić?
 
-Z katalogu głównego repozytorium:
+Z katalogu głównego repozytorium można uruchomić to demo na trzy sposoby.
+
+Rekomendowana komenda CLI:
 
 ```bash
-uv sync
+uv run oakvl run depth-proximity-alert
+```
+
+Można też użyć numeru dema:
+
+```bash
+uv run oakvl run 004
+```
+
+Bezpośredni punkt startowy przykładu:
+
+```bash
 uv run python examples/004_depth_proximity_alert/run.py
+```
+
+Skrót Makefile:
+
+```bash
+make demo-004
 ```
 
 ## Sterowanie

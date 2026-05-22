@@ -74,11 +74,30 @@ Dla każdej klatki:
 
 ## Jak uruchomić?
 
-Z katalogu głównego repozytorium:
+Z katalogu głównego repozytorium można uruchomić to demo na trzy sposoby.
+
+Rekomendowana komenda CLI:
 
 ```bash
-uv sync
+uv run oakvl run depth-hot-zone-game
+```
+
+Można też użyć numeru dema:
+
+```bash
+uv run oakvl run 005
+```
+
+Bezpośredni punkt startowy przykładu:
+
+```bash
 uv run python examples/005_depth_hot_zone_game/run.py
+```
+
+Skrót Makefile:
+
+```bash
+make demo-005
 ```
 
 ## Sterowanie
