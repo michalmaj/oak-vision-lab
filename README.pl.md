@@ -153,6 +153,53 @@ Bezpośrednie komendy `uv` pozostają najbardziej jawny sposobem uruchamiania de
 uv run python examples/007_multi_zone_reaction_game/run.py
 ```
 
+## CLI do uruchamiania dem
+
+Projekt udostępnia także mały interfejs linii poleceń do listowania, sprawdzania i uruchamiania dem.
+
+CLI jest dostępne przez komendę `oakvl`:
+
+```bash
+uv run oakvl --help
+```
+
+Lista dostępnych demonstracji:
+
+```bash
+uv run oakvl list
+```
+
+Szczegóły wybranego dema:
+
+```bash
+uv run oakvl info 001
+uv run oakvl info multi-zone-reaction-game
+```
+
+Uruchomienie dema po numerze:
+
+```bash
+uv run oakvl run 001
+```
+
+Uruchomienie dema po nazwie:
+
+```bash
+uv run oakvl run multi-zone-reaction-game
+```
+
+Każde demo można teraz uruchomić na trzy sposoby:
+
+```bash
+uv run oakvl run 007
+uv run python examples/007_multi_zone_reaction_game/run.py
+make demo-007
+```
+
+Bezpośrednia forma `uv run python examples/.../run.py` jest nadal przydatna dydaktycznie, ponieważ jasno pokazuje, gdzie znajduje się punkt startowy przykładu.
+
+CLI `oakvl` jest najbardziej stabilnym interfejsem do regularnego użycia, ponieważ nazwy dem mogą pozostać stałe nawet wtedy, gdy wewnętrzne ścieżki zmienią się w przyszłości.
+
 ## Kompatybilność sprzętowa i DepthAI
 
 Projekt jest obecnie rozwijany z myślą o klasycznych kamerach OAK-D / urządzeniach RVC2 i używa DepthAI v2.

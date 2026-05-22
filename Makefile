@@ -1,6 +1,7 @@
 .PHONY: sync format lint test check \
 	demo-001 demo-002 demo-003 demo-004 demo-005 demo-006 demo-007 \
-	demos help
+	demos help \
+	cli-list cli-info-001 cli-info-007
 
 sync:
 	uv sync
@@ -40,6 +41,15 @@ demo-006:
 demo-007:
 	uv run python examples/007_multi_zone_reaction_game/run.py
 
+cli-list:
+	uv run oakvl list
+
+cli-info-001:
+	uv run oakvl info 001
+
+cli-info-007:
+	uv run oakvl info 007
+
 demos:
 	@echo "Available demos:"
 	@echo "  make demo-001  Camera Preview HUD"
@@ -69,3 +79,8 @@ help:
 	@echo "  make demo-005  Run Depth Hot Zone Game"
 	@echo "  make demo-006  Run Moving Depth Target Game"
 	@echo "  make demo-007  Run Multi-Zone Reaction Game"
+	@echo ""
+	@echo "CLI:"
+	@echo "  make cli-list      List demos using the oakvl CLI"
+	@echo "  make cli-info-001  Show CLI info for demo 001"
+	@echo "  make cli-info-007  Show CLI info for demo 007"
