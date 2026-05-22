@@ -146,6 +146,12 @@ Uruchomienie diagnostyki środowiska:
 make doctor
 ```
 
+Uruchomienie diagnostyki wraz ze sprawdzeniem wykrywania urządzenia OAK-D:
+
+```bash
+make doctor-device
+```
+
 Uruchomienie dema:
 
 ```bash
@@ -175,13 +181,21 @@ Lista dostępnych demonstracji:
 uv run oakvl list
 ```
 
-Sprawdzenie lokalnego środowiska:
+Sprawdzenie lokalnego środowiska programowego:
 
 ```bash
 uv run oakvl doctor
 ```
 
-Komenda doctor sprawdza wersję Pythona oraz to, czy kluczowe pakiety, takie jak DepthAI, OpenCV, NumPy, pytest i Ruff, mogą zostać zaimportowane.
+Sprawdzenie środowiska programowego oraz wykrywania urządzenia OAK-D / DepthAI:
+
+```bash
+uv run oakvl doctor --device
+```
+
+Domyślna komenda doctor sprawdza wersję Pythona oraz to, czy kluczowe pakiety, takie jak DepthAI, OpenCV, NumPy, pytest i Ruff, mogą zostać zaimportowane.
+
+Opcja `--device` dodatkowo sprawdza, czy urządzenie DepthAI może zostać wykryte. Ten test jest opcjonalny, ponieważ wymaga dostępu do sprzętu i nie powinien być wymagany w CI.
 
 Szczegóły wybranego dema:
 

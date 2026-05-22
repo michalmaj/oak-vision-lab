@@ -147,10 +147,16 @@ make demo-001
 make demo-007
 ```
 
-Run environment diagnostics:
+Run software environment diagnostics:
 
 ```bash
 make doctor
+```
+
+Run diagnostics including OAK-D device discovery:
+
+```bash
+make doctor-device
 ```
 
 Direct `uv` commands remain the most explicit way to run demos, for example:
@@ -181,7 +187,15 @@ Check the local software environment:
 uv run oakvl doctor
 ```
 
-The doctor command verifies the Python version and checks whether key packages such as DepthAI, OpenCV, NumPy, pytest and Ruff can be imported.
+Check the software environment and OAK-D / DepthAI device discovery:
+
+```bash
+uv run oakvl doctor --device
+```
+
+The default doctor command verifies the Python version and checks whether key packages such as DepthAI, OpenCV, NumPy, pytest and Ruff can be imported.
+
+The `--device` option additionally checks whether a DepthAI device can be discovered. This check is optional because it requires hardware access and should not be required in CI.
 
 Show details about a selected demo:
 
