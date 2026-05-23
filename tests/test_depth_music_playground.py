@@ -8,7 +8,9 @@ from oak_vision_lab.demos.depth_music_playground import (
     compute_zone_mean_disparity,
     create_music_zones,
     create_note_triggers,
+    create_note_waveform,
     get_music_message,
+    get_note_frequency,
     get_zone_intensity,
     is_zone_active,
     measure_music_zones,
@@ -364,3 +366,44 @@ def test_scale_music_zones_scales_multiple_zones() -> None:
         MusicZone(index=0, note="C", x=0, y=0, width=20, height=20),
         MusicZone(index=1, note="D", x=20, y=0, width=20, height=20),
     ]
+
+
+def test_get_note_frequency_returns_frequency_for_supported_note() -> None:
+    assert get_note_frequency("A") == 440.0
+
+
+def test_get_note_frequency_rejects_unsupported_note() -> None:
+    with pytest.raises(ValueError, match="unsupported note"):
+        get_note_frequency("H")
+
+
+def test_create_note_waveform_returns_int16_samples() -> None:
+    waveform = create_note_waveform(
+        frequency=440.0,
+        duration_seconds=0.1,
+        sample_rate=1000,
+        volume=0.5,
+    )
+
+    assert waveform.dtype == np.int16
+    assert waveform.shape == (100,)
+
+
+def test_create_note_waveform_rejects_invalid_frequency() -> None:
+    with pytest.raises(ValueError, match="frequency must be positive"):
+        create_note_waveform(frequency=0.0)
+
+
+def test_create_note_waveform_rejects_invalid_duration() -> None:
+    with pytest.raises(ValueError, match="duration_seconds must be positive"):
+        create_note_waveform(frequency=440.0, duration_seconds=0.0)
+
+
+def test_create_note_waveform_rejects_invalid_sample_rate() -> None:
+    with pytest.raises(ValueError, match="sample_rate must be positive"):
+        create_note_waveform(frequency=440.0, sample_rate=0)
+
+
+def test_create_note_waveform_rejects_invalid_volume() -> None:
+    with pytest.raises(ValueError, match="volume must be between"):
+        create_note_waveform(frequency=440.0, volume=2.0)

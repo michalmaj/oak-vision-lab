@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
+from typing import Any
 
 import cv2
 import depthai as dai
@@ -24,6 +25,18 @@ DEFAULT_NEAR_THRESHOLD = 25.0
 DEFAULT_VERY_CLOSE_THRESHOLD = 45.0
 
 DEFAULT_NOTES = ("C", "D", "E", "G", "A")
+
+NOTE_FREQUENCIES = {
+    "C": 261.63,
+    "D": 293.66,
+    "E": 329.63,
+    "G": 392.00,
+    "A": 440.00,
+}
+
+AUDIO_SAMPLE_RATE = 44_100
+AUDIO_DURATION_SECONDS = 0.18
+AUDIO_VOLUME = 0.35
 
 RGB_PREVIEW_WIDTH = 640
 RGB_PREVIEW_HEIGHT = 400
@@ -310,6 +323,136 @@ def get_music_message(
     return "Move a hand or object into a zone to trigger notes."
 
 
+def get_note_frequency(note: str) -> float:
+    """Return frequency in Hz for a supported note."""
+
+    try:
+        return NOTE_FREQUENCIES[note]
+    except KeyError as error:
+        msg = f"unsupported note: {note}"
+        raise ValueError(msg) from error
+
+
+def create_note_waveform(
+    *,
+    frequency: float,
+    duration_seconds: float = AUDIO_DURATION_SECONDS,
+    sample_rate: int = AUDIO_SAMPLE_RATE,
+    volume: float = AUDIO_VOLUME,
+) -> np.ndarray:
+    """Create a short int16 sine-wave note."""
+
+    if frequency <= 0.0:
+        msg = "frequency must be positive"
+        raise ValueError(msg)
+
+    if duration_seconds <= 0.0:
+        msg = "duration_seconds must be positive"
+        raise ValueError(msg)
+
+    if sample_rate <= 0:
+        msg = "sample_rate must be positive"
+        raise ValueError(msg)
+
+    if not 0.0 <= volume <= 1.0:
+        msg = "volume must be between 0.0 and 1.0"
+        raise ValueError(msg)
+
+    sample_count = int(sample_rate * duration_seconds)
+    time_values = np.linspace(
+        0.0,
+        duration_seconds,
+        sample_count,
+        endpoint=False,
+    )
+
+    fade_out = np.linspace(1.0, 0.0, sample_count)
+    waveform = np.sin(2.0 * np.pi * frequency * time_values)
+    waveform = waveform * fade_out * volume
+
+    return (waveform * np.iinfo(np.int16).max).astype(np.int16)
+
+
+class NoteAudioPlayer:
+    """Small pygame-based note player for the depth music playground."""
+
+    def __init__(
+        self,
+        *,
+        sample_rate: int = AUDIO_SAMPLE_RATE,
+        duration_seconds: float = AUDIO_DURATION_SECONDS,
+        volume: float = AUDIO_VOLUME,
+    ) -> None:
+        self.sample_rate = sample_rate
+        self.duration_seconds = duration_seconds
+        self.volume = volume
+        self.enabled = False
+        self.status_message = "Audio: OFF"
+        self._pygame: Any | None = None
+        self._sounds: dict[str, Any] = {}
+
+    def initialize(self, *, notes: tuple[str, ...] = DEFAULT_NOTES) -> None:
+        """Initialize pygame mixer and prepare note sounds."""
+
+        try:
+            import pygame
+
+            pygame.mixer.init(
+                frequency=self.sample_rate,
+                size=-16,
+                channels=1,
+                buffer=512,
+            )
+            pygame.mixer.set_num_channels(16)
+
+            self._pygame = pygame
+            self._sounds = {
+                note: pygame.sndarray.make_sound(
+                    create_note_waveform(
+                        frequency=get_note_frequency(note),
+                        duration_seconds=self.duration_seconds,
+                        sample_rate=self.sample_rate,
+                        volume=self.volume,
+                    ),
+                )
+                for note in notes
+            }
+
+            self.enabled = True
+            self.status_message = "Audio: ON"
+        except Exception as error:
+            self.enabled = False
+            self.status_message = f"Audio unavailable: {error}"
+
+    def play_note(self, note: str) -> None:
+        """Play a note if audio is available."""
+
+        if not self.enabled:
+            return
+
+        sound = self._sounds.get(note)
+
+        if sound is None:
+            return
+
+        sound.play()
+
+    def play_triggers(self, triggers: list[NoteTrigger]) -> None:
+        """Play all triggered notes."""
+
+        for trigger in triggers:
+            self.play_note(trigger.note)
+
+    def shutdown(self) -> None:
+        """Shutdown pygame mixer if it was initialized."""
+
+        if self._pygame is None:
+            return
+
+        if self._pygame.mixer.get_init():
+            self._pygame.mixer.quit()
+
+
 def measure_music_zones(
     *,
     disparity_frame: np.ndarray,
@@ -542,6 +685,7 @@ def draw_rgb_hud(
     *,
     triggers: list[NoteTrigger],
     state: MusicPlaygroundState,
+    audio_status_message: str,
 ) -> None:
     """Draw user-facing music playground information on the RGB frame."""
 
@@ -552,6 +696,7 @@ def draw_rgb_hud(
         "RGB HUD + disparity-based zone triggers",
         f"Total triggers: {state.total_triggers}",
         f"Last note: {state.last_note or '--'}",
+        audio_status_message,
         message,
         "R - reset state | Q / ESC - quit",
     ]
@@ -620,6 +765,9 @@ def run() -> None:
 
     pipeline, max_disparity = create_rgb_disparity_pipeline()
 
+    audio_player = NoteAudioPlayer()
+    audio_player.initialize(notes=DEFAULT_NOTES)
+
     with dai.Device(pipeline) as device:
         rgb_queue = device.getOutputQueue(
             name=RGB_STREAM_NAME,
@@ -661,6 +809,9 @@ def run() -> None:
                 current_time=current_time,
                 last_trigger_time_by_zone=state.last_trigger_time_by_zone or {},
             )
+
+            audio_player.play_triggers(triggers)
+
             state = update_music_state(
                 state=state,
                 triggers=triggers,
@@ -712,6 +863,7 @@ def run() -> None:
                 rgb_frame,
                 triggers=triggers,
                 state=state,
+                audio_status_message=audio_player.status_message,
             )
             draw_disparity_hud(
                 colorized_disparity,
@@ -733,6 +885,7 @@ def run() -> None:
             if key == ord("r"):
                 state = MusicPlaygroundState()
 
+    audio_player.shutdown()
     cv2.destroyWindow(WINDOW_NAME)
 
 
