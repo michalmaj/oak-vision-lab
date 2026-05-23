@@ -98,6 +98,17 @@ DEMOS: tuple[DemoEntry, ...] = (
         readme_en="examples/007_multi_zone_reaction_game/README.md",
         readme_pl="examples/007_multi_zone_reaction_game/README.pl.md",
     ),
+    DemoEntry(
+        number="008",
+        slug="reaction-time-game",
+        title="Reaction Time Game",
+        short_description="Measure reaction time using a depth-based target zone.",
+        run_module="oak_vision_lab.demos.reaction_time_game",
+        run_function="run",
+        example_path="examples/008_reaction_time_game/run.py",
+        readme_en="examples/008_reaction_time_game/README.md",
+        readme_pl="examples/008_reaction_time_game/README.pl.md",
+    ),
 )
 
 
