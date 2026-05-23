@@ -11,6 +11,9 @@ from oak_vision_lab.demos.depth_music_playground import (
     get_music_message,
     get_zone_intensity,
     is_zone_active,
+    measure_music_zones,
+    scale_music_zone,
+    scale_music_zones,
     should_trigger_note,
     update_music_state,
 )
@@ -277,3 +280,87 @@ def test_get_music_message_returns_instruction() -> None:
     )
 
     assert "Move a hand" in message
+
+
+def test_measure_music_zones_returns_measurements_for_each_zone() -> None:
+    frame = np.zeros((4, 4), dtype=np.uint8)
+    frame[:, :2] = 10
+    frame[:, 2:] = 50
+    zones = [
+        MusicZone(index=0, note="C", x=0, y=0, width=2, height=4),
+        MusicZone(index=1, note="D", x=2, y=0, width=2, height=4),
+    ]
+
+    measurements = measure_music_zones(
+        disparity_frame=frame,
+        zones=zones,
+    )
+
+    assert len(measurements) == 2
+    assert measurements[0].mean_disparity == 10.0
+    assert measurements[1].mean_disparity == 50.0
+    assert not measurements[0].active
+    assert measurements[1].active
+
+
+def test_scale_music_zone_scales_coordinates_between_frame_sizes() -> None:
+    zone = MusicZone(index=0, note="C", x=10, y=20, width=30, height=40)
+
+    scaled = scale_music_zone(
+        zone=zone,
+        source_width=100,
+        source_height=200,
+        target_width=200,
+        target_height=100,
+    )
+
+    assert scaled == MusicZone(
+        index=0,
+        note="C",
+        x=20,
+        y=10,
+        width=60,
+        height=20,
+    )
+
+
+def test_scale_music_zone_rejects_invalid_source_dimensions() -> None:
+    with pytest.raises(ValueError, match="source dimensions must be positive"):
+        scale_music_zone(
+            zone=MusicZone(index=0, note="C", x=0, y=0, width=10, height=10),
+            source_width=0,
+            source_height=100,
+            target_width=100,
+            target_height=100,
+        )
+
+
+def test_scale_music_zone_rejects_invalid_target_dimensions() -> None:
+    with pytest.raises(ValueError, match="target dimensions must be positive"):
+        scale_music_zone(
+            zone=MusicZone(index=0, note="C", x=0, y=0, width=10, height=10),
+            source_width=100,
+            source_height=100,
+            target_width=0,
+            target_height=100,
+        )
+
+
+def test_scale_music_zones_scales_multiple_zones() -> None:
+    zones = [
+        MusicZone(index=0, note="C", x=0, y=0, width=10, height=10),
+        MusicZone(index=1, note="D", x=10, y=0, width=10, height=10),
+    ]
+
+    scaled = scale_music_zones(
+        zones=zones,
+        source_width=20,
+        source_height=10,
+        target_width=40,
+        target_height=20,
+    )
+
+    assert scaled == [
+        MusicZone(index=0, note="C", x=0, y=0, width=20, height=20),
+        MusicZone(index=1, note="D", x=20, y=0, width=20, height=20),
+    ]
