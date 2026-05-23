@@ -1,6 +1,6 @@
 .PHONY: sync format lint test check \
 	demo-001 demo-002 demo-003 demo-004 demo-005 demo-006 demo-007 demo-008 \
-	demo-009 \
+	demo-009 demo-010 \
 	demos help \
 	cli-list cli-info-001 cli-info-007 \
 	doctor \
@@ -50,6 +50,9 @@ demo-008:
 demo-009:
 	uv run python examples/009_object_distance_meter/run.py
 
+demo-010:
+	uv run python examples/010_closest_object_tracker/run.py
+
 cli-list:
 	uv run oakvl list
 
@@ -96,6 +99,7 @@ help:
 	@echo "  make demo-007  Run Multi-Zone Reaction Game"
 	@echo "  make demo-008  Run Reaction Time Game"
 	@echo "  make demo-009  Run Object Distance Meter"
+	@echo "  make demo-010  Run Closest Object Tracker"
 	@echo ""
 	@echo "CLI:"
 	@echo "  make cli-list      List demos using the oakvl CLI"
