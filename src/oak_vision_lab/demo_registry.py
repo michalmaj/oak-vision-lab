@@ -109,6 +109,18 @@ DEMOS: tuple[DemoEntry, ...] = (
         readme_en="examples/008_reaction_time_game/README.md",
         readme_pl="examples/008_reaction_time_game/README.pl.md",
     ),
+    DemoEntry(
+        number="009",
+        slug="object-distance-meter",
+        title="Object Distance Meter",
+        short_description="Measure object proximity using \
+RGB preview and stereo disparity.",
+        run_module="oak_vision_lab.demos.object_distance_meter",
+        run_function="run",
+        example_path="examples/009_object_distance_meter/run.py",
+        readme_en="examples/009_object_distance_meter/README.md",
+        readme_pl="examples/009_object_distance_meter/README.pl.md",
+    ),
 )
 
 
