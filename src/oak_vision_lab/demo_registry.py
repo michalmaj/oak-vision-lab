@@ -121,6 +121,18 @@ RGB preview and stereo disparity.",
         readme_en="examples/009_object_distance_meter/README.md",
         readme_pl="examples/009_object_distance_meter/README.pl.md",
     ),
+    DemoEntry(
+        number="010",
+        slug="closest-object-tracker",
+        title="Closest Object Tracker",
+        short_description="Track the closest region using \
+RGB preview and stereo disparity.",
+        run_module="oak_vision_lab.demos.closest_object_tracker",
+        run_function="run",
+        example_path="examples/010_closest_object_tracker/run.py",
+        readme_en="examples/010_closest_object_tracker/README.md",
+        readme_pl="examples/010_closest_object_tracker/README.pl.md",
+    ),
 )
 
 
