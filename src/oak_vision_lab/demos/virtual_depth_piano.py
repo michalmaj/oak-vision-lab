@@ -31,6 +31,9 @@ MEDIAPIPE_MAX_NUM_HANDS = 2
 MEDIAPIPE_MIN_DETECTION_CONFIDENCE = 0.6
 MEDIAPIPE_MIN_TRACKING_CONFIDENCE = 0.5
 
+DEFAULT_PRESS_DISPARITY_THRESHOLD = 25.0 # Lower if it's too hard to press, if it's too easy, set value a big higher
+DEFAULT_FINGERTIP_ROI_RADIUS = 10
+
 INDEX_FINGER_TIP_LANDMARK = 8
 MIDDLE_FINGER_TIP_LANDMARK = 12
 RING_FINGER_TIP_LANDMARK = 16
@@ -78,6 +81,39 @@ class Fingertip:
     x: int
     y: int
     label: str = "index"
+
+
+@dataclass(frozen=True)
+class DisparityRoi:
+    """Small disparity region used for fingertip depth measurement."""
+
+    x: int
+    y: int
+    width: int
+    height: int
+
+    @property
+    def x2(self) -> int:
+        """Return the right edge coordinate."""
+
+        return self.x + self.width
+
+    @property
+    def y2(self) -> int:
+        """Return the bottom edge coordinate."""
+
+        return self.y + self.height
+
+
+@dataclass(frozen=True)
+class FingertipDepthSample:
+    """Depth measurement associated with a fingertip."""
+
+    fingertip: Fingertip
+    disparity_point: PianoPoint
+    roi: DisparityRoi
+    mean_disparity: float
+    pressed: bool
 
 
 @dataclass(frozen=True)
@@ -376,6 +412,191 @@ def extract_fingertips_from_mediapipe_results(
         )
 
     return fingertips
+
+
+def scale_fingertip_to_frame(
+    *,
+    fingertip: Fingertip,
+    source_width: int,
+    source_height: int,
+    target_width: int,
+    target_height: int,
+) -> PianoPoint:
+    """Scale a fingertip from one frame size to another."""
+
+    if source_width <= 0 or source_height <= 0:
+        msg = "source dimensions must be positive"
+        raise ValueError(msg)
+
+    if target_width <= 0 or target_height <= 0:
+        msg = "target dimensions must be positive"
+        raise ValueError(msg)
+
+    scale_x = target_width / source_width
+    scale_y = target_height / source_height
+
+    x = round(fingertip.x * scale_x)
+    y = round(fingertip.y * scale_y)
+
+    x = max(0, min(target_width - 1, x))
+    y = max(0, min(target_height - 1, y))
+
+    return PianoPoint(x=x, y=y)
+
+
+def create_disparity_roi_around_point(
+    *,
+    point: PianoPoint,
+    frame_width: int,
+    frame_height: int,
+    radius: int = DEFAULT_FINGERTIP_ROI_RADIUS,
+) -> DisparityRoi:
+    """Create a clipped ROI around a disparity point."""
+
+    if frame_width <= 0 or frame_height <= 0:
+        msg = "frame dimensions must be positive"
+        raise ValueError(msg)
+
+    if radius < 0:
+        msg = "radius must be non-negative"
+        raise ValueError(msg)
+
+    x1 = max(0, point.x - radius)
+    y1 = max(0, point.y - radius)
+    x2 = min(frame_width, point.x + radius + 1)
+    y2 = min(frame_height, point.y + radius + 1)
+
+    return DisparityRoi(
+        x=x1,
+        y=y1,
+        width=x2 - x1,
+        height=y2 - y1,
+    )
+
+
+def compute_roi_mean_disparity(
+    *,
+    disparity_frame: np.ndarray,
+    roi: DisparityRoi,
+) -> float:
+    """Compute mean non-zero disparity inside an ROI."""
+
+    roi_frame = disparity_frame[roi.y : roi.y2, roi.x : roi.x2]
+
+    if roi_frame.size == 0:
+        return 0.0
+
+    valid_pixels = roi_frame[roi_frame > 0]
+
+    if valid_pixels.size == 0:
+        return 0.0
+
+    return float(np.mean(valid_pixels))
+
+
+def is_depth_press(
+    *,
+    mean_disparity: float,
+    press_disparity_threshold: float = DEFAULT_PRESS_DISPARITY_THRESHOLD,
+) -> bool:
+    """Return True when local disparity is high enough to count as a press."""
+
+    if press_disparity_threshold < 0.0:
+        msg = "press_disparity_threshold must be non-negative"
+        raise ValueError(msg)
+
+    return mean_disparity >= press_disparity_threshold
+
+
+def measure_fingertip_depth(
+    *,
+    fingertip: Fingertip,
+    rgb_width: int,
+    rgb_height: int,
+    disparity_frame: np.ndarray,
+    roi_radius: int = DEFAULT_FINGERTIP_ROI_RADIUS,
+    press_disparity_threshold: float = DEFAULT_PRESS_DISPARITY_THRESHOLD,
+) -> FingertipDepthSample:
+    """Measure local disparity around a fingertip."""
+
+    disparity_height, disparity_width = disparity_frame.shape[:2]
+
+    disparity_point = scale_fingertip_to_frame(
+        fingertip=fingertip,
+        source_width=rgb_width,
+        source_height=rgb_height,
+        target_width=disparity_width,
+        target_height=disparity_height,
+    )
+    roi = create_disparity_roi_around_point(
+        point=disparity_point,
+        frame_width=disparity_width,
+        frame_height=disparity_height,
+        radius=roi_radius,
+    )
+    mean_disparity = compute_roi_mean_disparity(
+        disparity_frame=disparity_frame,
+        roi=roi,
+    )
+
+    return FingertipDepthSample(
+        fingertip=fingertip,
+        disparity_point=disparity_point,
+        roi=roi,
+        mean_disparity=mean_disparity,
+        pressed=is_depth_press(
+            mean_disparity=mean_disparity,
+            press_disparity_threshold=press_disparity_threshold,
+        ),
+    )
+
+
+def measure_fingertips_depth(
+    *,
+    fingertips: list[Fingertip],
+    rgb_width: int,
+    rgb_height: int,
+    disparity_frame: np.ndarray,
+    roi_radius: int = DEFAULT_FINGERTIP_ROI_RADIUS,
+    press_disparity_threshold: float = DEFAULT_PRESS_DISPARITY_THRESHOLD,
+) -> list[FingertipDepthSample]:
+    """Measure local disparity around multiple fingertips."""
+
+    return [
+        measure_fingertip_depth(
+            fingertip=fingertip,
+            rgb_width=rgb_width,
+            rgb_height=rgb_height,
+            disparity_frame=disparity_frame,
+            roi_radius=roi_radius,
+            press_disparity_threshold=press_disparity_threshold,
+        )
+        for fingertip in fingertips
+    ]
+
+
+def get_depth_pressed_key_indexes(
+    *,
+    depth_samples: list[FingertipDepthSample],
+    keys: list[PianoKey],
+) -> frozenset[int]:
+    """Return key indexes pressed by fingertips with sufficient local depth."""
+
+    pressed_key_indexes: set[int] = set()
+
+    for depth_sample in depth_samples:
+        if not depth_sample.pressed:
+            continue
+
+        hovered_key = find_hovered_key(
+            fingertip=depth_sample.fingertip,
+            keys=keys,
+        )
+
+        if hovered_key is not None:
+            pressed_key_indexes.add(hovered_key.index)
+
+    return frozenset(pressed_key_indexes)
 
 
 def is_point_on_segment(
@@ -736,6 +957,7 @@ def draw_rgb_hud(
     frame: np.ndarray,
     *,
     fingertips: list[Fingertip],
+    depth_samples: list[FingertipDepthSample],
     triggers: list[PianoTrigger],
     state: PianoState,
 ) -> None:
@@ -745,15 +967,50 @@ def draw_rgb_hud(
         triggers=triggers,
         state=state,
     )
+    pressed_count = sum(1 for sample in depth_samples if sample.pressed)
+    max_local_disparity = max(
+        (sample.mean_disparity for sample in depth_samples),
+        default=0.0,
+    )
 
     lines = [
         "Virtual Depth Piano",
-        "MediaPipe index fingertip + pseudo-3D keys",
+        "MediaPipe fingertip + depth-assisted press",
         f"Fingertips: {len(fingertips)}",
+        f"Depth pressed: {pressed_count}",
+        f"Max local disparity: {max_local_disparity:.1f}",
+        f"Press threshold: {DEFAULT_PRESS_DISPARITY_THRESHOLD:.1f}",
         f"Total triggers: {state.total_triggers}",
         f"Last note: {state.last_note or '--'}",
         message,
         "Q / ESC - quit",
+    ]
+
+    x = 20
+    y = 34
+
+    for index, line in enumerate(lines):
+        draw_text(
+            frame,
+            line,
+            (x, y + index * 27),
+            scale=0.58,
+            color=(255, 255, 255),
+            thickness=1,
+        )
+
+
+def draw_disparity_hud(
+    frame: np.ndarray,
+    *,
+    max_disparity: float,
+) -> None:
+    """Draw measurement/debug information on the disparity frame."""
+
+    lines = [
+        "Disparity debug view",
+        f"Max disparity: {max_disparity:.1f}",
+        "Small ROIs show fingertip depth checks",
     ]
 
     x = 20
@@ -770,29 +1027,37 @@ def draw_rgb_hud(
         )
 
 
-def draw_disparity_hud(
+def draw_depth_samples_on_disparity(
     frame: np.ndarray,
     *,
-    max_disparity: float,
+    depth_samples: list[FingertipDepthSample],
 ) -> None:
-    """Draw measurement/debug information on the disparity frame."""
+    """Draw fingertip depth measurement ROIs on the disparity frame."""
 
-    lines = [
-        "Disparity debug view",
-        f"Max disparity: {max_disparity:.1f}",
-        "Depth-assisted press will be added next",
-    ]
+    for sample in depth_samples:
+        color = (0, 0, 255) if sample.pressed else (0, 180, 255)
 
-    x = 20
-    y = 34
-
-    for index, line in enumerate(lines):
+        cv2.rectangle(
+            frame,
+            (sample.roi.x, sample.roi.y),
+            (sample.roi.x2, sample.roi.y2),
+            color,
+            2,
+        )
+        cv2.circle(
+            frame,
+            (sample.disparity_point.x, sample.disparity_point.y),
+            5,
+            color,
+            -1,
+            cv2.LINE_AA,
+        )
         draw_text(
             frame,
-            line,
-            (x, y + index * 28),
-            scale=0.62,
-            color=(255, 255, 255),
+            f"{sample.mean_disparity:.1f}",
+            (sample.roi.x + 4, max(24, sample.roi.y - 8)),
+            scale=0.45,
+            color=color,
             thickness=1,
         )
 
@@ -876,10 +1141,23 @@ def run() -> None:
                     frame_height=rgb_height,
                 )
 
-                current_pressed_key_indexes = get_pressed_key_indexes(
+                hovered_key_indexes = get_pressed_key_indexes(
                     fingertips=fingertips,
                     keys=keys,
                 )
+
+                depth_samples = measure_fingertips_depth(
+                    fingertips=fingertips,
+                    rgb_width=rgb_width,
+                    rgb_height=rgb_height,
+                    disparity_frame=disparity_frame,
+                )
+
+                current_pressed_key_indexes = get_depth_pressed_key_indexes(
+                    depth_samples=depth_samples,
+                    keys=keys,
+                )
+
                 triggers = create_piano_triggers(
                     previous_state=state,
                     current_pressed_key_indexes=current_pressed_key_indexes,
@@ -904,7 +1182,7 @@ def run() -> None:
                 draw_virtual_piano_keys(
                     rgb_frame,
                     keys=keys,
-                    hovered_key_indexes=current_pressed_key_indexes,
+                    hovered_key_indexes=hovered_key_indexes,
                     triggered_key_indexes=triggered_key_indexes,
                 )
                 draw_fingertips(
@@ -914,12 +1192,17 @@ def run() -> None:
                 draw_rgb_hud(
                     rgb_frame,
                     fingertips=fingertips,
+                    depth_samples=depth_samples,
                     triggers=triggers,
                     state=state,
                 )
                 draw_disparity_hud(
                     colorized_disparity,
                     max_disparity=max_disparity,
+                )
+                draw_depth_samples_on_disparity(
+                    colorized_disparity,
+                    depth_samples=depth_samples,
                 )
 
                 split_screen = create_split_screen(

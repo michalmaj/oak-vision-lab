@@ -1,21 +1,31 @@
+import numpy as np
 import pytest
 
 from oak_vision_lab.demos.virtual_depth_piano import (
+    DisparityRoi,
     Fingertip,
+    FingertipDepthSample,
     NormalizedLandmark,
     PianoPoint,
     PianoState,
+    compute_roi_mean_disparity,
+    create_disparity_roi_around_point,
     create_piano_triggers,
     create_virtual_piano_keys,
     extract_fingertips_from_mediapipe_results,
     extract_fingertips_from_normalized_landmarks,
     extract_normalized_landmarks_from_mediapipe_hand,
     find_hovered_key,
+    get_depth_pressed_key_indexes,
     get_piano_message,
     get_pressed_key_indexes,
+    is_depth_press,
     is_point_inside_key,
     is_point_inside_polygon,
     is_point_on_segment,
+    measure_fingertip_depth,
+    measure_fingertips_depth,
+    scale_fingertip_to_frame,
     scale_normalized_landmark,
     update_piano_state,
 )
@@ -519,3 +529,196 @@ def test_extract_fingertips_from_mediapipe_tasks_results_extracts_hands() -> Non
     assert fingertips == [
         Fingertip(x=50, y=20, label="index"),
     ]
+
+
+def test_scale_fingertip_to_frame_scales_coordinates() -> None:
+    point = scale_fingertip_to_frame(
+        fingertip=Fingertip(x=50, y=20, label="index"),
+        source_width=100,
+        source_height=80,
+        target_width=200,
+        target_height=160,
+    )
+
+    assert point == PianoPoint(x=100, y=40)
+
+
+def test_scale_fingertip_to_frame_clamps_coordinates() -> None:
+    point = scale_fingertip_to_frame(
+        fingertip=Fingertip(x=150, y=-10, label="index"),
+        source_width=100,
+        source_height=80,
+        target_width=200,
+        target_height=160,
+    )
+
+    assert point == PianoPoint(x=199, y=0)
+
+
+def test_scale_fingertip_to_frame_rejects_invalid_source_dimensions() -> None:
+    with pytest.raises(ValueError, match="source dimensions must be positive"):
+        scale_fingertip_to_frame(
+            fingertip=Fingertip(x=10, y=10),
+            source_width=0,
+            source_height=80,
+            target_width=200,
+            target_height=160,
+        )
+
+
+def test_scale_fingertip_to_frame_rejects_invalid_target_dimensions() -> None:
+    with pytest.raises(ValueError, match="target dimensions must be positive"):
+        scale_fingertip_to_frame(
+            fingertip=Fingertip(x=10, y=10),
+            source_width=100,
+            source_height=80,
+            target_width=0,
+            target_height=160,
+        )
+
+
+def test_create_disparity_roi_around_point_returns_clipped_roi() -> None:
+    roi = create_disparity_roi_around_point(
+        point=PianoPoint(x=2, y=3),
+        frame_width=20,
+        frame_height=20,
+        radius=5,
+    )
+
+    assert roi == DisparityRoi(x=0, y=0, width=8, height=9)
+
+
+def test_create_disparity_roi_around_point_rejects_invalid_frame_dimensions() -> None:
+    with pytest.raises(ValueError, match="frame dimensions must be positive"):
+        create_disparity_roi_around_point(
+            point=PianoPoint(x=2, y=3),
+            frame_width=0,
+            frame_height=20,
+        )
+
+
+def test_create_disparity_roi_around_point_rejects_negative_radius() -> None:
+    with pytest.raises(ValueError, match="radius must be non-negative"):
+        create_disparity_roi_around_point(
+            point=PianoPoint(x=2, y=3),
+            frame_width=20,
+            frame_height=20,
+            radius=-1,
+        )
+
+
+def test_compute_roi_mean_disparity_ignores_zero_values() -> None:
+    frame = np.array(
+        [
+            [0, 0, 0, 0],
+            [0, 10, 20, 0],
+            [0, 30, 40, 0],
+            [0, 0, 0, 0],
+        ],
+        dtype=np.uint8,
+    )
+    roi = DisparityRoi(x=1, y=1, width=2, height=2)
+
+    result = compute_roi_mean_disparity(
+        disparity_frame=frame,
+        roi=roi,
+    )
+
+    assert result == 25.0
+
+
+def test_compute_roi_mean_disparity_returns_zero_without_valid_pixels() -> None:
+    frame = np.zeros((4, 4), dtype=np.uint8)
+    roi = DisparityRoi(x=1, y=1, width=2, height=2)
+
+    result = compute_roi_mean_disparity(
+        disparity_frame=frame,
+        roi=roi,
+    )
+
+    assert result == 0.0
+
+
+def test_is_depth_press_returns_true_above_threshold() -> None:
+    assert is_depth_press(mean_disparity=30.0, press_disparity_threshold=25.0)
+
+
+def test_is_depth_press_returns_false_below_threshold() -> None:
+    assert not is_depth_press(mean_disparity=20.0, press_disparity_threshold=25.0)
+
+
+def test_is_depth_press_rejects_negative_threshold() -> None:
+    with pytest.raises(ValueError, match="press_disparity_threshold must be"):
+        is_depth_press(mean_disparity=20.0, press_disparity_threshold=-1.0)
+
+
+def test_measure_fingertip_depth_returns_pressed_sample() -> None:
+    disparity_frame = np.ones((80, 100), dtype=np.uint8) * 40
+
+    sample = measure_fingertip_depth(
+        fingertip=Fingertip(x=50, y=40, label="index"),
+        rgb_width=100,
+        rgb_height=80,
+        disparity_frame=disparity_frame,
+        roi_radius=2,
+        press_disparity_threshold=25.0,
+    )
+
+    assert sample.fingertip == Fingertip(x=50, y=40, label="index")
+    assert sample.disparity_point == PianoPoint(x=50, y=40)
+    assert sample.mean_disparity == 40.0
+    assert sample.pressed
+
+
+def test_measure_fingertips_depth_returns_samples_for_all_fingertips() -> None:
+    disparity_frame = np.ones((80, 100), dtype=np.uint8) * 40
+
+    samples = measure_fingertips_depth(
+        fingertips=[
+            Fingertip(x=10, y=10, label="index"),
+            Fingertip(x=20, y=20, label="middle"),
+        ],
+        rgb_width=100,
+        rgb_height=80,
+        disparity_frame=disparity_frame,
+        roi_radius=2,
+        press_disparity_threshold=25.0,
+    )
+
+    assert len(samples) == 2
+    assert all(sample.pressed for sample in samples)
+
+
+def test_get_depth_pressed_key_indexes_returns_only_depth_pressed_keys() -> None:
+    keys = create_virtual_piano_keys(
+        frame_width=100,
+        frame_height=100,
+        notes=("C", "D"),
+        top_y_ratio=0.5,
+        bottom_y_ratio=0.9,
+        back_width_ratio=1.0,
+        front_width_ratio=1.0,
+    )
+    samples = [
+        FingertipDepthSample(
+            fingertip=Fingertip(x=25, y=70, label="index"),
+            disparity_point=PianoPoint(x=25, y=70),
+            roi=DisparityRoi(x=20, y=65, width=10, height=10),
+            mean_disparity=40.0,
+            pressed=True,
+        ),
+        FingertipDepthSample(
+            fingertip=Fingertip(x=75, y=70, label="middle"),
+            disparity_point=PianoPoint(x=75, y=70),
+            roi=DisparityRoi(x=70, y=65, width=10, height=10),
+            mean_disparity=10.0,
+            pressed=False,
+        ),
+    ]
+
+    pressed_key_indexes = get_depth_pressed_key_indexes(
+        depth_samples=samples,
+        keys=keys,
+    )
+
+    assert pressed_key_indexes == frozenset({0})
