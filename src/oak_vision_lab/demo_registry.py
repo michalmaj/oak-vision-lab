@@ -145,6 +145,18 @@ RGB preview and stereo disparity.",
         readme_en="examples/011_depth_music_playground/README.md",
         readme_pl="examples/011_depth_music_playground/README.pl.md",
     ),
+    DemoEntry(
+        number="012",
+        slug="depth-dodge-avoider-game",
+        title="Depth Dodge / Avoider Game",
+        short_description="Avoid depth-based danger zones using \
+RGB preview and stereo disparity.",
+        run_module="oak_vision_lab.demos.depth_dodge_avoider_game",
+        run_function="run",
+        example_path="examples/012_depth_dodge_avoider_game/run.py",
+        readme_en="examples/012_depth_dodge_avoider_game/README.md",
+        readme_pl="examples/012_depth_dodge_avoider_game/README.pl.md",
+    ),
 )
 
 

@@ -6,9 +6,9 @@ from oak_vision_lab.demo_registry import list_demos, resolve_demo
 def test_list_demos_returns_registered_demos() -> None:
     demos = list_demos()
 
-    assert len(demos) == 11
+    assert len(demos) == 12
     assert demos[0].number == "001"
-    assert demos[-1].number == "011"
+    assert demos[-1].number == "012"
 
 
 def test_resolve_demo_by_number() -> None:
