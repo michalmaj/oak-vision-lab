@@ -2,16 +2,21 @@ import pytest
 
 from oak_vision_lab.demos.virtual_depth_piano import (
     Fingertip,
+    NormalizedLandmark,
     PianoPoint,
     PianoState,
     create_piano_triggers,
     create_virtual_piano_keys,
+    extract_fingertips_from_mediapipe_results,
+    extract_fingertips_from_normalized_landmarks,
+    extract_normalized_landmarks_from_mediapipe_hand,
     find_hovered_key,
     get_piano_message,
     get_pressed_key_indexes,
     is_point_inside_key,
     is_point_inside_polygon,
     is_point_on_segment,
+    scale_normalized_landmark,
     update_piano_state,
 )
 
@@ -343,3 +348,148 @@ def test_get_piano_message_returns_instruction() -> None:
     )
 
     assert "Move your index finger" in message
+
+
+class FakeMediaPipeLandmark:
+    def __init__(self, *, x: float, y: float) -> None:
+        self.x = x
+        self.y = y
+
+
+class FakeMediaPipeHandLandmarks:
+    def __init__(self, landmarks: list[FakeMediaPipeLandmark]) -> None:
+        self.landmark = landmarks
+
+
+class FakeMediaPipeResults:
+    def __init__(self, multi_hand_landmarks) -> None:
+        self.multi_hand_landmarks = multi_hand_landmarks
+
+
+def test_scale_normalized_landmark_scales_to_image_coordinates() -> None:
+    fingertip = scale_normalized_landmark(
+        landmark=NormalizedLandmark(x=0.5, y=0.25),
+        frame_width=101,
+        frame_height=81,
+        label="index",
+    )
+
+    assert fingertip == Fingertip(x=50, y=20, label="index")
+
+
+def test_scale_normalized_landmark_clamps_to_frame_bounds() -> None:
+    fingertip = scale_normalized_landmark(
+        landmark=NormalizedLandmark(x=2.0, y=-1.0),
+        frame_width=100,
+        frame_height=80,
+        label="index",
+    )
+
+    assert fingertip == Fingertip(x=99, y=0, label="index")
+
+
+def test_scale_normalized_landmark_rejects_invalid_frame_dimensions() -> None:
+    with pytest.raises(ValueError, match="frame dimensions must be positive"):
+        scale_normalized_landmark(
+            landmark=NormalizedLandmark(x=0.5, y=0.5),
+            frame_width=0,
+            frame_height=80,
+            label="index",
+        )
+
+
+def test_extract_fingertips_from_normalized_landmarks_extracts_selected_points() -> (
+    None
+):
+    landmarks = [NormalizedLandmark(x=0.0, y=0.0) for _ in range(21)]
+    landmarks[8] = NormalizedLandmark(x=0.5, y=0.25)
+    landmarks[12] = NormalizedLandmark(x=0.75, y=0.5)
+
+    fingertips = extract_fingertips_from_normalized_landmarks(
+        landmarks=landmarks,
+        frame_width=101,
+        frame_height=81,
+        fingertip_landmarks={
+            "index": 8,
+            "middle": 12,
+        },
+    )
+
+    assert fingertips == [
+        Fingertip(x=50, y=20, label="index"),
+        Fingertip(x=75, y=40, label="middle"),
+    ]
+
+
+def test_extract_fingertips_from_normalized_landmarks_skips_missing_indexes() -> None:
+    landmarks = [NormalizedLandmark(x=0.0, y=0.0) for _ in range(5)]
+
+    fingertips = extract_fingertips_from_normalized_landmarks(
+        landmarks=landmarks,
+        frame_width=100,
+        frame_height=80,
+        fingertip_landmarks={"index": 8},
+    )
+
+    assert fingertips == []
+
+
+def test_extract_normalized_landmarks_from_mediapipe_hand_converts_landmarks() -> None:
+    hand_landmarks = FakeMediaPipeHandLandmarks(
+        [
+            FakeMediaPipeLandmark(x=0.1, y=0.2),
+            FakeMediaPipeLandmark(x=0.3, y=0.4),
+        ],
+    )
+
+    landmarks = extract_normalized_landmarks_from_mediapipe_hand(hand_landmarks)
+
+    assert landmarks == [
+        NormalizedLandmark(x=0.1, y=0.2),
+        NormalizedLandmark(x=0.3, y=0.4),
+    ]
+
+
+def test_extract_fingertips_from_mediapipe_results_returns_empty_without_hands() -> (
+    None
+):
+    results = FakeMediaPipeResults(multi_hand_landmarks=None)
+
+    fingertips = extract_fingertips_from_mediapipe_results(
+        results=results,
+        frame_width=100,
+        frame_height=80,
+    )
+
+    assert fingertips == []
+
+
+def test_extract_fingertips_from_mediapipe_results_extracts_from_multiple_hands() -> (
+    None
+):
+    first_hand = FakeMediaPipeHandLandmarks(
+        [FakeMediaPipeLandmark(x=0.0, y=0.0) for _ in range(21)],
+    )
+    second_hand = FakeMediaPipeHandLandmarks(
+        [FakeMediaPipeLandmark(x=0.0, y=0.0) for _ in range(21)],
+    )
+    first_hand.landmark[8] = FakeMediaPipeLandmark(x=0.5, y=0.25)
+    second_hand.landmark[8] = FakeMediaPipeLandmark(x=0.75, y=0.5)
+
+    results = FakeMediaPipeResults(
+        multi_hand_landmarks=[
+            first_hand,
+            second_hand,
+        ],
+    )
+
+    fingertips = extract_fingertips_from_mediapipe_results(
+        results=results,
+        frame_width=101,
+        frame_height=81,
+    )
+
+    assert fingertips == [
+        Fingertip(x=50, y=20, label="index"),
+        Fingertip(x=75, y=40, label="index"),
+    ]

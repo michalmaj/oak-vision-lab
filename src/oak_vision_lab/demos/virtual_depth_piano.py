@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 DEFAULT_NOTES = ("C", "D", "E", "G", "A")
 
@@ -10,6 +11,15 @@ DEFAULT_TOP_Y_RATIO = 0.52
 DEFAULT_BOTTOM_Y_RATIO = 0.92
 DEFAULT_BACK_WIDTH_RATIO = 0.68
 DEFAULT_FRONT_WIDTH_RATIO = 0.96
+
+INDEX_FINGER_TIP_LANDMARK = 8
+MIDDLE_FINGER_TIP_LANDMARK = 12
+RING_FINGER_TIP_LANDMARK = 16
+PINKY_TIP_LANDMARK = 20
+
+DEFAULT_FINGERTIP_LANDMARKS = {
+    "index": INDEX_FINGER_TIP_LANDMARK,
+}
 
 
 @dataclass(frozen=True)
@@ -45,6 +55,14 @@ class Fingertip:
     x: int
     y: int
     label: str = "index"
+
+
+@dataclass(frozen=True)
+class NormalizedLandmark:
+    """Normalized landmark coordinates returned by hand tracking."""
+
+    x: float
+    y: float
 
 
 @dataclass(frozen=True)
@@ -142,6 +160,100 @@ def create_virtual_piano_keys(
         )
 
     return keys
+
+
+def scale_normalized_landmark(
+    *,
+    landmark: NormalizedLandmark,
+    frame_width: int,
+    frame_height: int,
+    label: str,
+) -> Fingertip:
+    """Scale a normalized landmark to image coordinates."""
+
+    if frame_width <= 0 or frame_height <= 0:
+        msg = "frame dimensions must be positive"
+        raise ValueError(msg)
+
+    x = round(landmark.x * (frame_width - 1))
+    y = round(landmark.y * (frame_height - 1))
+
+    x = max(0, min(frame_width - 1, x))
+    y = max(0, min(frame_height - 1, y))
+
+    return Fingertip(x=x, y=y, label=label)
+
+
+def extract_fingertips_from_normalized_landmarks(
+    *,
+    landmarks: list[NormalizedLandmark],
+    frame_width: int,
+    frame_height: int,
+    fingertip_landmarks: dict[str, int] | None = None,
+) -> list[Fingertip]:
+    """Extract selected fingertips from normalized hand landmarks."""
+
+    selected_landmarks = fingertip_landmarks or DEFAULT_FINGERTIP_LANDMARKS
+    fingertips: list[Fingertip] = []
+
+    for label, landmark_index in selected_landmarks.items():
+        if landmark_index >= len(landmarks):
+            continue
+
+        fingertips.append(
+            scale_normalized_landmark(
+                landmark=landmarks[landmark_index],
+                frame_width=frame_width,
+                frame_height=frame_height,
+                label=label,
+            ),
+        )
+
+    return fingertips
+
+
+def extract_normalized_landmarks_from_mediapipe_hand(
+    hand_landmarks: Any,
+) -> list[NormalizedLandmark]:
+    """Convert MediaPipe hand landmarks to internal normalized landmarks."""
+
+    return [
+        NormalizedLandmark(
+            x=float(landmark.x),
+            y=float(landmark.y),
+        )
+        for landmark in hand_landmarks.landmark
+    ]
+
+
+def extract_fingertips_from_mediapipe_results(
+    *,
+    results: Any,
+    frame_width: int,
+    frame_height: int,
+    fingertip_landmarks: dict[str, int] | None = None,
+) -> list[Fingertip]:
+    """Extract fingertips from MediaPipe Hands results."""
+
+    if not getattr(results, "multi_hand_landmarks", None):
+        return []
+
+    fingertips: list[Fingertip] = []
+
+    for hand_landmarks in results.multi_hand_landmarks:
+        normalized_landmarks = extract_normalized_landmarks_from_mediapipe_hand(
+            hand_landmarks,
+        )
+        fingertips.extend(
+            extract_fingertips_from_normalized_landmarks(
+                landmarks=normalized_landmarks,
+                frame_width=frame_width,
+                frame_height=frame_height,
+                fingertip_landmarks=fingertip_landmarks,
+            ),
+        )
+
+    return fingertips
 
 
 def is_point_on_segment(
