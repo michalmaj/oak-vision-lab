@@ -1,6 +1,6 @@
 .PHONY: sync format lint test check \
 	demo-001 demo-002 demo-003 demo-004 demo-005 demo-006 demo-007 demo-008 \
-	demo-009 demo-010 demo-011 demo-012 \
+	demo-009 demo-010 demo-011 demo-012 demo-013 \
 	demos help \
 	cli-list cli-info-001 cli-info-007 \
 	doctor \
@@ -59,6 +59,9 @@ demo-011:
 demo-012:
 	uv run python examples/012_depth_dodge_avoider_game/run.py
 
+demo-013:
+	uv run python examples/013_virtual_depth_piano/run.py
+
 cli-list:
 	uv run oakvl list
 
@@ -108,6 +111,7 @@ help:
 	@echo "  make demo-010  Run Closest Object Tracker"
 	@echo "  make demo-011  Run Depth Music Playground"£
 	@echo "  make demo-012  Run Depth Dodge/Avoider Game"
+	@echo "  make demo-013  Run Virtual Depth Piano"
 	@echo ""
 	@echo "CLI:"
 	@echo "  make cli-list      List demos using the oakvl CLI"

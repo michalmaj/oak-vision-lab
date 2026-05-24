@@ -157,6 +157,18 @@ RGB preview and stereo disparity.",
         readme_en="examples/012_depth_dodge_avoider_game/README.md",
         readme_pl="examples/012_depth_dodge_avoider_game/README.pl.md",
     ),
+    DemoEntry(
+        number="013",
+        slug="virtual-depth-piano",
+        title="Virtual Depth Piano",
+        short_description="Play pseudo-3D virtual piano keys using \
+MediaPipe fingertips and depth-assisted press.",
+        run_module="oak_vision_lab.demos.virtual_depth_piano",
+        run_function="run",
+        example_path="examples/013_virtual_depth_piano/run.py",
+        readme_en="examples/013_virtual_depth_piano/README.md",
+        readme_pl="examples/013_virtual_depth_piano/README.pl.md",
+    ),
 )
 
 
