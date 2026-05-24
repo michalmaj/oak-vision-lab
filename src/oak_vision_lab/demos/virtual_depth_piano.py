@@ -3,7 +3,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
+
+import cv2
+import depthai as dai
+import numpy as np
+
+from oak_vision_lab.depth.disparity import colorize_disparity_frame
 
 DEFAULT_NOTES = ("C", "D", "E", "G", "A")
 
@@ -11,6 +18,18 @@ DEFAULT_TOP_Y_RATIO = 0.52
 DEFAULT_BOTTOM_Y_RATIO = 0.92
 DEFAULT_BACK_WIDTH_RATIO = 0.68
 DEFAULT_FRONT_WIDTH_RATIO = 0.96
+
+WINDOW_NAME = "oak-vision-lab | Virtual Depth Piano"
+
+RGB_STREAM_NAME = "rgb"
+DISPARITY_STREAM_NAME = "disparity"
+
+RGB_PREVIEW_WIDTH = 640
+RGB_PREVIEW_HEIGHT = 400
+
+MEDIAPIPE_MAX_NUM_HANDS = 2
+MEDIAPIPE_MIN_DETECTION_CONFIDENCE = 0.6
+MEDIAPIPE_MIN_TRACKING_CONFIDENCE = 0.5
 
 INDEX_FINGER_TIP_LANDMARK = 8
 MIDDLE_FINGER_TIP_LANDMARK = 12
@@ -20,6 +39,10 @@ PINKY_TIP_LANDMARK = 20
 DEFAULT_FINGERTIP_LANDMARKS = {
     "index": INDEX_FINGER_TIP_LANDMARK,
 }
+
+DEFAULT_HAND_LANDMARKER_MODEL_PATH = Path(
+    "models/mediapipe/hand_landmarker.task",
+)
 
 
 @dataclass(frozen=True)
@@ -81,6 +104,79 @@ class PianoState:
     pressed_key_indexes: frozenset[int] = frozenset()
     total_triggers: int = 0
     last_note: str | None = None
+
+
+def create_rgb_disparity_pipeline() -> tuple[dai.Pipeline, float]:
+    """Create an OAK-D pipeline with RGB preview and stereo disparity output."""
+
+    pipeline = dai.Pipeline()
+
+    color_camera = pipeline.create(dai.node.ColorCamera)
+    mono_left = pipeline.create(dai.node.MonoCamera)
+    mono_right = pipeline.create(dai.node.MonoCamera)
+    stereo = pipeline.create(dai.node.StereoDepth)
+
+    rgb_output = pipeline.create(dai.node.XLinkOut)
+    disparity_output = pipeline.create(dai.node.XLinkOut)
+
+    rgb_output.setStreamName(RGB_STREAM_NAME)
+    disparity_output.setStreamName(DISPARITY_STREAM_NAME)
+
+    color_camera.setBoardSocket(dai.CameraBoardSocket.RGB)
+    color_camera.setPreviewSize(RGB_PREVIEW_WIDTH, RGB_PREVIEW_HEIGHT)
+    color_camera.setInterleaved(False)
+    color_camera.setColorOrder(dai.ColorCameraProperties.ColorOrder.BGR)
+
+    mono_left.setBoardSocket(dai.CameraBoardSocket.LEFT)
+    mono_right.setBoardSocket(dai.CameraBoardSocket.RIGHT)
+    mono_left.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
+    mono_right.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
+
+    stereo.setDefaultProfilePreset(dai.node.StereoDepth.PresetMode.HIGH_DENSITY)
+    stereo.setLeftRightCheck(True)
+    stereo.setSubpixel(False)
+
+    mono_left.out.link(stereo.left)
+    mono_right.out.link(stereo.right)
+
+    color_camera.preview.link(rgb_output.input)
+    stereo.disparity.link(disparity_output.input)
+
+    max_disparity = float(stereo.initialConfig.getMaxDisparity())
+
+    return pipeline, max_disparity
+
+
+def create_hand_tracker(
+    *,
+    model_path: Path = DEFAULT_HAND_LANDMARKER_MODEL_PATH,
+) -> Any:
+    """Create a MediaPipe Tasks hand landmarker."""
+
+    if not model_path.exists():
+        msg = (
+            "MediaPipe hand landmarker model was not found. "
+            f"Expected path: {model_path}. "
+            "Download hand_landmarker.task and place it there."
+        )
+        raise FileNotFoundError(msg)
+
+    import mediapipe as mp
+
+    BaseOptions = mp.tasks.BaseOptions
+    HandLandmarker = mp.tasks.vision.HandLandmarker
+    HandLandmarkerOptions = mp.tasks.vision.HandLandmarkerOptions
+    VisionRunningMode = mp.tasks.vision.RunningMode
+
+    options = HandLandmarkerOptions(
+        base_options=BaseOptions(model_asset_path=str(model_path)),
+        running_mode=VisionRunningMode.VIDEO,
+        num_hands=MEDIAPIPE_MAX_NUM_HANDS,
+        min_hand_detection_confidence=MEDIAPIPE_MIN_DETECTION_CONFIDENCE,
+        min_tracking_confidence=MEDIAPIPE_MIN_TRACKING_CONFIDENCE,
+    )
+
+    return HandLandmarker.create_from_options(options)
 
 
 def validate_ratio(
@@ -233,14 +329,40 @@ def extract_fingertips_from_mediapipe_results(
     frame_height: int,
     fingertip_landmarks: dict[str, int] | None = None,
 ) -> list[Fingertip]:
-    """Extract fingertips from MediaPipe Hands results."""
+    """Extract fingertips from MediaPipe hand tracking results."""
 
-    if not getattr(results, "multi_hand_landmarks", None):
+    tasks_hand_landmarks = getattr(results, "hand_landmarks", None)
+
+    if tasks_hand_landmarks:
+        fingertips: list[Fingertip] = []
+
+        for hand_landmarks in tasks_hand_landmarks:
+            normalized_landmarks = [
+                NormalizedLandmark(
+                    x=float(landmark.x),
+                    y=float(landmark.y),
+                )
+                for landmark in hand_landmarks
+            ]
+            fingertips.extend(
+                extract_fingertips_from_normalized_landmarks(
+                    landmarks=normalized_landmarks,
+                    frame_width=frame_width,
+                    frame_height=frame_height,
+                    fingertip_landmarks=fingertip_landmarks,
+                ),
+            )
+
+        return fingertips
+
+    legacy_hand_landmarks = getattr(results, "multi_hand_landmarks", None)
+
+    if not legacy_hand_landmarks:
         return []
 
-    fingertips: list[Fingertip] = []
+    fingertips = []
 
-    for hand_landmarks in results.multi_hand_landmarks:
+    for hand_landmarks in legacy_hand_landmarks:
         normalized_landmarks = extract_normalized_landmarks_from_mediapipe_hand(
             hand_landmarks,
         )
@@ -435,3 +557,387 @@ def get_piano_message(
         return f"Last note: {state.last_note}"
 
     return "Move your index finger over a virtual key."
+
+
+def get_key_color(
+    *,
+    key_index: int,
+    hovered_key_indexes: frozenset[int],
+    triggered_key_indexes: frozenset[int],
+) -> tuple[int, int, int]:
+    """Return BGR color for a virtual piano key."""
+
+    if key_index in triggered_key_indexes:
+        return (0, 0, 255)
+
+    if key_index in hovered_key_indexes:
+        return (0, 180, 255)
+
+    return (160, 160, 160)
+
+
+def draw_text(
+    frame: np.ndarray,
+    text: str,
+    position: tuple[int, int],
+    *,
+    scale: float = 0.7,
+    color: tuple[int, int, int] = (255, 255, 255),
+    thickness: int = 2,
+) -> None:
+    """Draw readable text with a dark outline."""
+
+    cv2.putText(
+        frame,
+        text,
+        position,
+        cv2.FONT_HERSHEY_SIMPLEX,
+        scale,
+        (0, 0, 0),
+        thickness + 2,
+        cv2.LINE_AA,
+    )
+    cv2.putText(
+        frame,
+        text,
+        position,
+        cv2.FONT_HERSHEY_SIMPLEX,
+        scale,
+        color,
+        thickness,
+        cv2.LINE_AA,
+    )
+
+
+def piano_key_to_numpy_points(key: PianoKey) -> np.ndarray:
+    """Convert a piano key polygon to OpenCV-compatible points."""
+
+    return np.array(
+        [[point.x, point.y] for point in key.points],
+        dtype=np.int32,
+    )
+
+
+def draw_virtual_piano_key(
+    frame: np.ndarray,
+    *,
+    key: PianoKey,
+    hovered_key_indexes: frozenset[int],
+    triggered_key_indexes: frozenset[int],
+) -> None:
+    """Draw a single pseudo-3D virtual piano key."""
+
+    color = get_key_color(
+        key_index=key.index,
+        hovered_key_indexes=hovered_key_indexes,
+        triggered_key_indexes=triggered_key_indexes,
+    )
+    points = piano_key_to_numpy_points(key)
+
+    overlay = frame.copy()
+
+    if key.index in triggered_key_indexes:
+        alpha = 0.72
+    elif key.index in hovered_key_indexes:
+        alpha = 0.45
+    else:
+        alpha = 0.18
+
+    cv2.fillConvexPoly(
+        overlay,
+        points,
+        color,
+    )
+    cv2.addWeighted(
+        overlay,
+        alpha,
+        frame,
+        1.0 - alpha,
+        0,
+        frame,
+    )
+
+    thickness = 4 if key.index in hovered_key_indexes else 2
+
+    cv2.polylines(
+        frame,
+        [points],
+        isClosed=True,
+        color=color,
+        thickness=thickness,
+        lineType=cv2.LINE_AA,
+    )
+
+    center = key.center
+
+    draw_text(
+        frame,
+        key.note,
+        (center.x - 12, center.y + 8),
+        scale=0.9,
+        color=color,
+        thickness=2,
+    )
+
+
+def draw_virtual_piano_keys(
+    frame: np.ndarray,
+    *,
+    keys: list[PianoKey],
+    hovered_key_indexes: frozenset[int],
+    triggered_key_indexes: frozenset[int],
+) -> None:
+    """Draw all virtual piano keys."""
+
+    for key in keys:
+        draw_virtual_piano_key(
+            frame,
+            key=key,
+            hovered_key_indexes=hovered_key_indexes,
+            triggered_key_indexes=triggered_key_indexes,
+        )
+
+
+def draw_fingertips(
+    frame: np.ndarray,
+    *,
+    fingertips: list[Fingertip],
+) -> None:
+    """Draw detected fingertips."""
+
+    for fingertip in fingertips:
+        cv2.circle(
+            frame,
+            (fingertip.x, fingertip.y),
+            8,
+            (255, 255, 255),
+            -1,
+            cv2.LINE_AA,
+        )
+        cv2.circle(
+            frame,
+            (fingertip.x, fingertip.y),
+            12,
+            (0, 180, 255),
+            2,
+            cv2.LINE_AA,
+        )
+        draw_text(
+            frame,
+            fingertip.label,
+            (fingertip.x + 14, fingertip.y - 10),
+            scale=0.45,
+            color=(255, 255, 255),
+            thickness=1,
+        )
+
+
+def draw_rgb_hud(
+    frame: np.ndarray,
+    *,
+    fingertips: list[Fingertip],
+    triggers: list[PianoTrigger],
+    state: PianoState,
+) -> None:
+    """Draw user-facing virtual piano HUD on the RGB frame."""
+
+    message = get_piano_message(
+        triggers=triggers,
+        state=state,
+    )
+
+    lines = [
+        "Virtual Depth Piano",
+        "MediaPipe index fingertip + pseudo-3D keys",
+        f"Fingertips: {len(fingertips)}",
+        f"Total triggers: {state.total_triggers}",
+        f"Last note: {state.last_note or '--'}",
+        message,
+        "Q / ESC - quit",
+    ]
+
+    x = 20
+    y = 34
+
+    for index, line in enumerate(lines):
+        draw_text(
+            frame,
+            line,
+            (x, y + index * 28),
+            scale=0.62,
+            color=(255, 255, 255),
+            thickness=1,
+        )
+
+
+def draw_disparity_hud(
+    frame: np.ndarray,
+    *,
+    max_disparity: float,
+) -> None:
+    """Draw measurement/debug information on the disparity frame."""
+
+    lines = [
+        "Disparity debug view",
+        f"Max disparity: {max_disparity:.1f}",
+        "Depth-assisted press will be added next",
+    ]
+
+    x = 20
+    y = 34
+
+    for index, line in enumerate(lines):
+        draw_text(
+            frame,
+            line,
+            (x, y + index * 28),
+            scale=0.62,
+            color=(255, 255, 255),
+            thickness=1,
+        )
+
+
+def create_split_screen(
+    *,
+    rgb_frame: np.ndarray,
+    disparity_frame: np.ndarray,
+) -> np.ndarray:
+    """Create a side-by-side RGB and disparity presentation frame."""
+
+    if rgb_frame.shape[:2] != disparity_frame.shape[:2]:
+        disparity_frame = cv2.resize(
+            disparity_frame,
+            (rgb_frame.shape[1], rgb_frame.shape[0]),
+            interpolation=cv2.INTER_NEAREST,
+        )
+
+    return np.hstack((rgb_frame, disparity_frame))
+
+
+def run() -> None:
+    """Run the OAK-D virtual depth piano demo."""
+
+    pipeline, max_disparity = create_rgb_disparity_pipeline()
+    hand_tracker = create_hand_tracker()
+    state = PianoState()
+
+    try:
+        with dai.Device(pipeline) as device:
+            rgb_queue = device.getOutputQueue(
+                name=RGB_STREAM_NAME,
+                maxSize=4,
+                blocking=False,
+            )
+            disparity_queue = device.getOutputQueue(
+                name=DISPARITY_STREAM_NAME,
+                maxSize=4,
+                blocking=False,
+            )
+
+            cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_NORMAL)
+
+            while True:
+                rgb_message = rgb_queue.get()
+                disparity_message = disparity_queue.get()
+
+                rgb_frame = rgb_message.getCvFrame()
+                disparity_frame = disparity_message.getFrame()
+
+                rgb_height, rgb_width = rgb_frame.shape[:2]
+
+                keys = create_virtual_piano_keys(
+                    frame_width=rgb_width,
+                    frame_height=rgb_height,
+                )
+
+                mediapipe_frame = cv2.cvtColor(
+                    rgb_frame,
+                    cv2.COLOR_BGR2RGB,
+                )
+                mediapipe_frame = np.ascontiguousarray(mediapipe_frame)
+
+                import mediapipe as mp
+
+                mp_image = mp.Image(
+                    image_format=mp.ImageFormat.SRGB,
+                    data=mediapipe_frame,
+                )
+                timestamp_ms = int(
+                    (cv2.getTickCount() / cv2.getTickFrequency()) * 1000,
+                )
+                results = hand_tracker.detect_for_video(
+                    mp_image,
+                    timestamp_ms,
+                )
+
+                fingertips = extract_fingertips_from_mediapipe_results(
+                    results=results,
+                    frame_width=rgb_width,
+                    frame_height=rgb_height,
+                )
+
+                current_pressed_key_indexes = get_pressed_key_indexes(
+                    fingertips=fingertips,
+                    keys=keys,
+                )
+                triggers = create_piano_triggers(
+                    previous_state=state,
+                    current_pressed_key_indexes=current_pressed_key_indexes,
+                    keys=keys,
+                    current_time=cv2.getTickCount() / cv2.getTickFrequency(),
+                )
+                state = update_piano_state(
+                    previous_state=state,
+                    current_pressed_key_indexes=current_pressed_key_indexes,
+                    triggers=triggers,
+                )
+
+                colorized_disparity = colorize_disparity_frame(
+                    disparity_frame,
+                    max_disparity=max_disparity,
+                )
+
+                triggered_key_indexes = frozenset(
+                    trigger.key_index for trigger in triggers
+                )
+
+                draw_virtual_piano_keys(
+                    rgb_frame,
+                    keys=keys,
+                    hovered_key_indexes=current_pressed_key_indexes,
+                    triggered_key_indexes=triggered_key_indexes,
+                )
+                draw_fingertips(
+                    rgb_frame,
+                    fingertips=fingertips,
+                )
+                draw_rgb_hud(
+                    rgb_frame,
+                    fingertips=fingertips,
+                    triggers=triggers,
+                    state=state,
+                )
+                draw_disparity_hud(
+                    colorized_disparity,
+                    max_disparity=max_disparity,
+                )
+
+                split_screen = create_split_screen(
+                    rgb_frame=rgb_frame,
+                    disparity_frame=colorized_disparity,
+                )
+
+                cv2.imshow(WINDOW_NAME, split_screen)
+
+                key = cv2.waitKey(1) & 0xFF
+
+                if key in {ord("q"), 27}:
+                    break
+
+    finally:
+        hand_tracker.close()
+        cv2.destroyWindow(WINDOW_NAME)
+
+
+if __name__ == "__main__":
+    run()

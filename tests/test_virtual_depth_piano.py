@@ -21,6 +21,11 @@ from oak_vision_lab.demos.virtual_depth_piano import (
 )
 
 
+class FakeMediaPipeTasksResults:
+    def __init__(self, hand_landmarks) -> None:
+        self.hand_landmarks = hand_landmarks
+
+
 def test_create_virtual_piano_keys_returns_one_key_per_note() -> None:
     keys = create_virtual_piano_keys(
         frame_width=100,
@@ -492,4 +497,25 @@ def test_extract_fingertips_from_mediapipe_results_extracts_from_multiple_hands(
     assert fingertips == [
         Fingertip(x=50, y=20, label="index"),
         Fingertip(x=75, y=40, label="index"),
+    ]
+
+
+def test_extract_fingertips_from_mediapipe_tasks_results_extracts_hands() -> None:
+    hand_landmarks = [FakeMediaPipeLandmark(x=0.0, y=0.0) for _ in range(21)]
+    hand_landmarks[8] = FakeMediaPipeLandmark(x=0.5, y=0.25)
+
+    results = FakeMediaPipeTasksResults(
+        hand_landmarks=[
+            hand_landmarks,
+        ],
+    )
+
+    fingertips = extract_fingertips_from_mediapipe_results(
+        results=results,
+        frame_width=101,
+        frame_height=81,
+    )
+
+    assert fingertips == [
+        Fingertip(x=50, y=20, label="index"),
     ]
