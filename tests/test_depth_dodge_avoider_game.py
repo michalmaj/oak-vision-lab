@@ -16,7 +16,10 @@ from oak_vision_lab.demos.depth_dodge_avoider_game import (
     get_dodge_message,
     has_collision_cooldown_elapsed,
     is_zone_occupied,
+    measure_dodge_zones,
     register_collision,
+    scale_dodge_zone,
+    scale_dodge_zones,
     update_dodge_game,
 )
 from oak_vision_lab.depth.proximity import ProximityLevel
@@ -515,3 +518,87 @@ def test_get_dodge_message_returns_default_instruction() -> None:
     )
 
     assert "Stay away" in message
+
+
+def test_measure_dodge_zones_returns_measurements_for_each_zone() -> None:
+    frame = np.zeros((4, 4), dtype=np.uint8)
+    frame[:, :2] = 10
+    frame[:, 2:] = 50
+    zones = [
+        DodgeZone(index=0, label="Zone 1", x=0, y=0, width=2, height=4),
+        DodgeZone(index=1, label="Zone 2", x=2, y=0, width=2, height=4),
+    ]
+
+    measurements = measure_dodge_zones(
+        disparity_frame=frame,
+        zones=zones,
+    )
+
+    assert len(measurements) == 2
+    assert measurements[0].mean_disparity == 10.0
+    assert measurements[1].mean_disparity == 50.0
+    assert not measurements[0].occupied
+    assert measurements[1].occupied
+
+
+def test_scale_dodge_zone_scales_coordinates_between_frame_sizes() -> None:
+    zone = DodgeZone(index=0, label="Zone 1", x=10, y=20, width=30, height=40)
+
+    scaled = scale_dodge_zone(
+        zone=zone,
+        source_width=100,
+        source_height=200,
+        target_width=200,
+        target_height=100,
+    )
+
+    assert scaled == DodgeZone(
+        index=0,
+        label="Zone 1",
+        x=20,
+        y=10,
+        width=60,
+        height=20,
+    )
+
+
+def test_scale_dodge_zone_rejects_invalid_source_dimensions() -> None:
+    with pytest.raises(ValueError, match="source dimensions must be positive"):
+        scale_dodge_zone(
+            zone=DodgeZone(index=0, label="Zone 1", x=0, y=0, width=10, height=10),
+            source_width=0,
+            source_height=100,
+            target_width=100,
+            target_height=100,
+        )
+
+
+def test_scale_dodge_zone_rejects_invalid_target_dimensions() -> None:
+    with pytest.raises(ValueError, match="target dimensions must be positive"):
+        scale_dodge_zone(
+            zone=DodgeZone(index=0, label="Zone 1", x=0, y=0, width=10, height=10),
+            source_width=100,
+            source_height=100,
+            target_width=0,
+            target_height=100,
+        )
+
+
+def test_scale_dodge_zones_scales_multiple_zones() -> None:
+    zones = [
+        DodgeZone(index=0, label="Zone 1", x=0, y=0, width=10, height=10),
+        DodgeZone(index=1, label="Zone 2", x=10, y=0, width=10, height=10),
+    ]
+
+    scaled = scale_dodge_zones(
+        zones=zones,
+        source_width=20,
+        source_height=10,
+        target_width=40,
+        target_height=20,
+    )
+
+    assert scaled == [
+        DodgeZone(index=0, label="Zone 1", x=0, y=0, width=20, height=20),
+        DodgeZone(index=1, label="Zone 2", x=20, y=0, width=20, height=20),
+    ]
