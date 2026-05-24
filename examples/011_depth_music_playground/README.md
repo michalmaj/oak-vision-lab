@@ -25,7 +25,7 @@ C  D  E  G  A
 
 For each zone, the demo computes the mean non-zero disparity. If the zone becomes `NEAR` or `VERY_CLOSE`, it becomes active and can trigger a note event. Each zone has a short cooldown to prevent continuous triggering every frame.
 
-The current version provides visual note triggers. Audio output can be added as an optional extension.
+The current version provides visual note triggers and optional pygame-based audio output. If audio initialization fails, the demo continues to work visually.
 
 ## How to run
 
@@ -66,6 +66,7 @@ The window shows two views side by side:
 
 - RGB preview on the left
 - colored disparity view on the right
+- When audio is available, each triggered zone also plays a short note.
 
 Five music zones are drawn across both views. Move a hand, notebook, bottle or another object into a zone and closer to the camera. The active zone should light up and trigger a visual note event.
 

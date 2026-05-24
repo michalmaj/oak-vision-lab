@@ -25,7 +25,7 @@ C  D  E  G  A
 
 Dla każdej strefy demo oblicza średnią niezerową dysparycję. Jeśli strefa przechodzi w stan `NEAR` albo `VERY_CLOSE`, staje się aktywna i może wyzwolić zdarzenie nuty. Każda strefa ma krótki cooldown, aby zapobiec wyzwalaniu nuty w każdej klatce.
 
-Aktualna wersja zapewnia wizualne wyzwalanie nut. Wyjście audio można dodać jako opcjonalne rozszerzenie.
+Aktualna wersja zapewnia wizualne wyzwalanie nut. Wyjście audio można dodać jako opcjonalne rozszerzenie.Aktualna wersja zapewnia wizualne wyzwalanie nut oraz opcjonalne wyjście audio oparte o pygame. Jeśli inicjalizacja audio się nie powiedzie, demo nadal działa wizualnie.
 
 ## Jak uruchomić?
 
@@ -66,6 +66,7 @@ Okno pokazuje dwa widoki obok siebie:
 
 - podgląd RGB po lewej stronie
 - kolorową mapę dysparycji po prawej stronie
+- Jeśli audio jest dostępne, każda zaznaczona strefa odtwarza również krótką nutę.
 
 Na obu widokach rysowanych jest pięć stref muzycznych. Przesuń rękę, zeszyt, butelkę albo inny obiekt do jednej ze stref i zbliż go do kamery. Aktywna strefa powinna się rozświetlić i wyzwolić wizualne zdarzenie nuty.
 
