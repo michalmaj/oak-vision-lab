@@ -133,6 +133,18 @@ RGB preview and stereo disparity.",
         readme_en="examples/010_closest_object_tracker/README.md",
         readme_pl="examples/010_closest_object_tracker/README.pl.md",
     ),
+    DemoEntry(
+        number="011",
+        slug="depth-music-playground",
+        title="Depth Music Playground",
+        short_description="Trigger visual music zones using \
+RGB preview and stereo disparity.",
+        run_module="oak_vision_lab.demos.depth_music_playground",
+        run_function="run",
+        example_path="examples/011_depth_music_playground/run.py",
+        readme_en="examples/011_depth_music_playground/README.md",
+        readme_pl="examples/011_depth_music_playground/README.pl.md",
+    ),
 )
 
 
