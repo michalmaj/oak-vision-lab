@@ -10,6 +10,7 @@ from oak_vision_lab.demos.virtual_depth_piano import (
     PianoState,
     compute_roi_mean_disparity,
     create_disparity_roi_around_point,
+    create_note_waveform,
     create_piano_triggers,
     create_virtual_piano_keys,
     extract_fingertips_from_mediapipe_results,
@@ -17,6 +18,7 @@ from oak_vision_lab.demos.virtual_depth_piano import (
     extract_normalized_landmarks_from_mediapipe_hand,
     find_hovered_key,
     get_depth_pressed_key_indexes,
+    get_note_frequency,
     get_piano_message,
     get_pressed_key_indexes,
     is_depth_press,
@@ -722,3 +724,44 @@ def test_get_depth_pressed_key_indexes_returns_only_depth_pressed_keys() -> None
     )
 
     assert pressed_key_indexes == frozenset({0})
+
+
+def test_get_note_frequency_returns_frequency_for_supported_note() -> None:
+    assert get_note_frequency("A") == 440.0
+
+
+def test_get_note_frequency_rejects_unsupported_note() -> None:
+    with pytest.raises(ValueError, match="unsupported note"):
+        get_note_frequency("H")
+
+
+def test_create_note_waveform_returns_int16_samples() -> None:
+    waveform = create_note_waveform(
+        frequency=440.0,
+        duration_seconds=0.1,
+        sample_rate=1000,
+        volume=0.5,
+    )
+
+    assert waveform.dtype == np.int16
+    assert waveform.shape == (100,)
+
+
+def test_create_note_waveform_rejects_invalid_frequency() -> None:
+    with pytest.raises(ValueError, match="frequency must be positive"):
+        create_note_waveform(frequency=0.0)
+
+
+def test_create_note_waveform_rejects_invalid_duration() -> None:
+    with pytest.raises(ValueError, match="duration_seconds must be positive"):
+        create_note_waveform(frequency=440.0, duration_seconds=0.0)
+
+
+def test_create_note_waveform_rejects_invalid_sample_rate() -> None:
+    with pytest.raises(ValueError, match="sample_rate must be positive"):
+        create_note_waveform(frequency=440.0, sample_rate=0)
+
+
+def test_create_note_waveform_rejects_invalid_volume() -> None:
+    with pytest.raises(ValueError, match="volume must be between"):
+        create_note_waveform(frequency=440.0, volume=2.0)
