@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from oak_vision_lab.demos.virtual_depth_piano import (
+    DEFAULT_NOTES,
     DisparityRoi,
     Fingertip,
     FingertipDepthSample,
@@ -18,6 +19,7 @@ from oak_vision_lab.demos.virtual_depth_piano import (
     extract_normalized_landmarks_from_mediapipe_hand,
     find_hovered_key,
     get_depth_pressed_key_indexes,
+    get_note_display_label,
     get_note_frequency,
     get_piano_message,
     get_pressed_key_indexes,
@@ -802,3 +804,21 @@ def test_maybe_mirror_frame_flips_frame_when_enabled() -> None:
     )
 
     assert np.array_equal(result, expected)
+
+
+def test_default_notes_represent_full_c_major_scale() -> None:
+    assert DEFAULT_NOTES == ("C", "D", "E", "F", "G", "A", "B", "C5")
+
+
+def test_get_note_display_label_returns_c_for_upper_c() -> None:
+    assert get_note_display_label("C5") == "C"
+
+
+def test_get_note_display_label_returns_note_unchanged() -> None:
+    assert get_note_display_label("F") == "F"
+
+
+def test_get_note_frequency_returns_frequency_for_full_scale_note() -> None:
+    assert get_note_frequency("F") == 349.23
+    assert get_note_frequency("B") == 493.88
+    assert get_note_frequency("C5") == 523.25

@@ -12,14 +12,17 @@ import numpy as np
 
 from oak_vision_lab.depth.disparity import colorize_disparity_frame
 
-DEFAULT_NOTES = ("C", "D", "E", "G", "A")
+DEFAULT_NOTES = ("C", "D", "E", "F", "G", "A", "B", "C5")
 
 NOTE_FREQUENCIES = {
     "C": 261.63,
     "D": 293.66,
     "E": 329.63,
+    "F": 349.23,
     "G": 392.00,
     "A": 440.00,
+    "B": 493.88,
+    "C5": 523.25,
 }
 
 AUDIO_SAMPLE_RATE = 44_100
@@ -886,6 +889,15 @@ def get_note_frequency(note: str) -> float:
         raise ValueError(msg) from error
 
 
+def get_note_display_label(note: str) -> str:
+    """Return a short display label for a note."""
+
+    if note == "C5":
+        return "C"
+
+    return note
+
+
 def create_note_waveform(
     *,
     frequency: float,
@@ -1039,7 +1051,7 @@ def draw_virtual_piano_key(
 
     draw_text(
         frame,
-        key.note,
+        get_note_display_label(key.note),
         (center.x - 12, center.y + 8),
         scale=0.9,
         color=color,
