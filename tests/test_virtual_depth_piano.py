@@ -2,23 +2,29 @@ import numpy as np
 import pytest
 
 from oak_vision_lab.demos.virtual_depth_piano import (
+    DEFAULT_AUDIO_NOTES,
     DEFAULT_NOTES,
     DisparityRoi,
     Fingertip,
     FingertipDepthSample,
     NormalizedLandmark,
+    PianoKeyKind,
     PianoPoint,
     PianoState,
     compute_roi_mean_disparity,
+    create_black_piano_keys,
     create_disparity_roi_around_point,
     create_note_waveform,
     create_piano_triggers,
+    create_virtual_piano_keyboard,
     create_virtual_piano_keys,
     extract_fingertips_from_mediapipe_results,
     extract_fingertips_from_normalized_landmarks,
     extract_normalized_landmarks_from_mediapipe_hand,
     find_hovered_key,
+    get_black_key_note_between,
     get_depth_pressed_key_indexes,
+    get_note_base,
     get_note_display_label,
     get_note_frequency,
     get_piano_message,
@@ -32,6 +38,7 @@ from oak_vision_lab.demos.virtual_depth_piano import (
     measure_fingertips_depth,
     scale_fingertip_to_frame,
     scale_normalized_landmark,
+    sort_keys_for_hit_testing,
     update_piano_state,
 )
 
@@ -822,3 +829,113 @@ def test_get_note_frequency_returns_frequency_for_full_scale_note() -> None:
     assert get_note_frequency("F") == 349.23
     assert get_note_frequency("B") == 493.88
     assert get_note_frequency("C5") == 523.25
+
+
+def test_get_note_base_removes_octave_suffix() -> None:
+    assert get_note_base("C5") == "C"
+    assert get_note_base("F#") == "F#"
+
+
+def test_get_black_key_note_between_returns_semitone_when_available() -> None:
+    assert get_black_key_note_between(left_note="C", right_note="D") == "C#"
+    assert get_black_key_note_between(left_note="D", right_note="E") == "D#"
+    assert get_black_key_note_between(left_note="F", right_note="G") == "F#"
+
+
+def test_get_black_key_note_between_returns_none_without_semitone() -> None:
+    assert get_black_key_note_between(left_note="E", right_note="F") is None
+    assert get_black_key_note_between(left_note="B", right_note="C5") is None
+
+
+def test_create_black_piano_keys_returns_expected_semitones() -> None:
+    white_keys = create_virtual_piano_keys(
+        frame_width=800,
+        frame_height=400,
+        notes=("C", "D", "E", "F", "G", "A", "B", "C5"),
+    )
+
+    black_keys = create_black_piano_keys(white_keys=white_keys)
+
+    assert [key.note for key in black_keys] == ["C#", "D#", "F#", "G#", "A#"]
+    assert all(key.kind == PianoKeyKind.BLACK for key in black_keys)
+
+
+def test_create_black_piano_keys_uses_indexes_after_white_keys() -> None:
+    white_keys = create_virtual_piano_keys(
+        frame_width=800,
+        frame_height=400,
+        notes=("C", "D", "E"),
+    )
+
+    black_keys = create_black_piano_keys(white_keys=white_keys)
+
+    assert [key.index for key in black_keys] == [3, 4]
+
+
+def test_create_virtual_piano_keyboard_contains_white_and_black_keys() -> None:
+    keys = create_virtual_piano_keyboard(
+        frame_width=800,
+        frame_height=400,
+    )
+
+    white_keys = [key for key in keys if key.kind == PianoKeyKind.WHITE]
+    black_keys = [key for key in keys if key.kind == PianoKeyKind.BLACK]
+
+    assert [key.note for key in white_keys] == ["C", "D", "E", "F", "G", "A", "B", "C5"]
+    assert [key.note for key in black_keys] == ["C#", "D#", "F#", "G#", "A#"]
+
+
+def test_sort_keys_for_hit_testing_puts_black_keys_first() -> None:
+    keys = create_virtual_piano_keyboard(
+        frame_width=800,
+        frame_height=400,
+    )
+
+    sorted_keys = sort_keys_for_hit_testing(keys)
+
+    assert sorted_keys[0].kind == PianoKeyKind.BLACK
+    assert sorted_keys[-1].kind == PianoKeyKind.WHITE
+
+
+def test_find_hovered_key_prefers_black_key_over_underlying_white_key() -> None:
+    keys = create_virtual_piano_keyboard(
+        frame_width=800,
+        frame_height=400,
+    )
+    black_key = next(key for key in keys if key.note == "C#")
+    fingertip = Fingertip(
+        x=black_key.center.x,
+        y=black_key.center.y,
+    )
+
+    hovered_key = find_hovered_key(
+        fingertip=fingertip,
+        keys=keys,
+    )
+
+    assert hovered_key is not None
+    assert hovered_key.note == "C#"
+
+
+def test_get_note_frequency_returns_frequency_for_black_key() -> None:
+    assert get_note_frequency("C#") == 277.18
+    assert get_note_frequency("A#") == 466.16
+
+
+def test_default_audio_notes_include_black_keys() -> None:
+    assert "C#" in DEFAULT_AUDIO_NOTES
+    assert "D#" in DEFAULT_AUDIO_NOTES
+    assert "F#" in DEFAULT_AUDIO_NOTES
+    assert "G#" in DEFAULT_AUDIO_NOTES
+    assert "A#" in DEFAULT_AUDIO_NOTES
+
+
+def test_default_audio_notes_include_all_virtual_keyboard_notes() -> None:
+    keys = create_virtual_piano_keyboard(
+        frame_width=800,
+        frame_height=400,
+    )
+
+    keyboard_notes = {key.note for key in keys}
+
+    assert keyboard_notes.issubset(set(DEFAULT_AUDIO_NOTES))

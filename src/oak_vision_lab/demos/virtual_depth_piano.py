@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
 from typing import Any
 
@@ -14,16 +15,35 @@ from oak_vision_lab.depth.disparity import colorize_disparity_frame
 
 DEFAULT_NOTES = ("C", "D", "E", "F", "G", "A", "B", "C5")
 
+BLACK_KEY_NOTE_BY_WHITE_PAIR = {
+    ("C", "D"): "C#",
+    ("D", "E"): "D#",
+    ("F", "G"): "F#",
+    ("G", "A"): "G#",
+    ("A", "B"): "A#",
+}
+
+BLACK_KEY_HEIGHT_RATIO = 0.58
+BLACK_KEY_TOP_WIDTH_RATIO = 0.52
+BLACK_KEY_BOTTOM_WIDTH_RATIO = 0.46
+
 NOTE_FREQUENCIES = {
     "C": 261.63,
+    "C#": 277.18,
     "D": 293.66,
+    "D#": 311.13,
     "E": 329.63,
     "F": 349.23,
+    "F#": 369.99,
     "G": 392.00,
+    "G#": 415.30,
     "A": 440.00,
+    "A#": 466.16,
     "B": 493.88,
     "C5": 523.25,
 }
+
+DEFAULT_AUDIO_NOTES = tuple(NOTE_FREQUENCIES)
 
 AUDIO_SAMPLE_RATE = 44_100
 AUDIO_DURATION_SECONDS = 0.18
@@ -67,6 +87,13 @@ DEFAULT_HAND_LANDMARKER_MODEL_PATH = Path(
 )
 
 
+class PianoKeyKind(Enum):
+    """Virtual piano key type."""
+
+    WHITE = "white"
+    BLACK = "black"
+
+
 @dataclass(frozen=True)
 class PianoPoint:
     """2D point used by virtual piano geometry."""
@@ -82,6 +109,7 @@ class PianoKey:
     index: int
     note: str
     points: tuple[PianoPoint, PianoPoint, PianoPoint, PianoPoint]
+    kind: PianoKeyKind = PianoKeyKind.WHITE
 
     @property
     def center(self) -> PianoPoint:
@@ -179,7 +207,7 @@ class NoteAudioPlayer:
         self._pygame: Any | None = None
         self._sounds: dict[str, Any] = {}
 
-    def initialize(self, *, notes: tuple[str, ...] = DEFAULT_NOTES) -> None:
+    def initialize(self, *, notes: tuple[str, ...] = DEFAULT_AUDIO_NOTES) -> None:
         """Initialize pygame mixer and prepare note sounds."""
 
         try:
@@ -387,10 +415,158 @@ def create_virtual_piano_keys(
                     PianoPoint(x=front_right, y=bottom_y),
                     PianoPoint(x=front_left, y=bottom_y),
                 ),
+                kind=PianoKeyKind.WHITE,
             ),
         )
 
     return keys
+
+
+def get_note_base(note: str) -> str:
+    """Return note name without octave suffix."""
+
+    return "".join(character for character in note if not character.isdigit())
+
+
+def get_black_key_note_between(
+    *,
+    left_note: str,
+    right_note: str,
+) -> str | None:
+    """Return black key note between two white notes, if it exists."""
+
+    left_base = get_note_base(left_note)
+    right_base = get_note_base(right_note)
+
+    return BLACK_KEY_NOTE_BY_WHITE_PAIR.get((left_base, right_base))
+
+
+def interpolate_x_at_y(
+    *,
+    start: PianoPoint,
+    end: PianoPoint,
+    y: int,
+) -> int:
+    """Interpolate x coordinate on a line segment for the given y coordinate."""
+
+    if start.y == end.y:
+        return round((start.x + end.x) / 2)
+
+    ratio = (y - start.y) / (end.y - start.y)
+
+    return round(start.x + ratio * (end.x - start.x))
+
+
+def create_black_piano_keys(
+    *,
+    white_keys: list[PianoKey],
+    start_index: int | None = None,
+    height_ratio: float = BLACK_KEY_HEIGHT_RATIO,
+    top_width_ratio: float = BLACK_KEY_TOP_WIDTH_RATIO,
+    bottom_width_ratio: float = BLACK_KEY_BOTTOM_WIDTH_RATIO,
+) -> list[PianoKey]:
+    """Create pseudo-3D black keys between compatible white keys."""
+
+    if not white_keys:
+        return []
+
+    validate_ratio(value=height_ratio, name="height_ratio")
+    validate_ratio(value=top_width_ratio, name="top_width_ratio")
+    validate_ratio(value=bottom_width_ratio, name="bottom_width_ratio")
+
+    next_index = start_index
+    if next_index is None:
+        next_index = max(key.index for key in white_keys) + 1
+
+    black_keys: list[PianoKey] = []
+
+    for left_key, right_key in zip(white_keys, white_keys[1:], strict=False):
+        black_note = get_black_key_note_between(
+            left_note=left_key.note,
+            right_note=right_key.note,
+        )
+
+        if black_note is None:
+            continue
+
+        top_left = left_key.points[1]
+        bottom_left = left_key.points[2]
+
+        white_top_width = max(1, left_key.points[1].x - left_key.points[0].x)
+        white_bottom_width = max(1, left_key.points[2].x - left_key.points[3].x)
+
+        top_width = max(6, round(white_top_width * top_width_ratio))
+        bottom_width = max(8, round(white_bottom_width * bottom_width_ratio))
+
+        black_top_y = top_left.y
+        black_bottom_y = round(
+            black_top_y + (left_key.points[2].y - black_top_y) * height_ratio,
+        )
+
+        boundary_top_x = top_left.x
+        boundary_bottom_x = interpolate_x_at_y(
+            start=top_left,
+            end=bottom_left,
+            y=black_bottom_y,
+        )
+
+        black_keys.append(
+            PianoKey(
+                index=next_index,
+                note=black_note,
+                points=(
+                    PianoPoint(
+                        x=boundary_top_x - top_width // 2,
+                        y=black_top_y,
+                    ),
+                    PianoPoint(
+                        x=boundary_top_x + top_width // 2,
+                        y=black_top_y,
+                    ),
+                    PianoPoint(
+                        x=boundary_bottom_x + bottom_width // 2,
+                        y=black_bottom_y,
+                    ),
+                    PianoPoint(
+                        x=boundary_bottom_x - bottom_width // 2,
+                        y=black_bottom_y,
+                    ),
+                ),
+                kind=PianoKeyKind.BLACK,
+            ),
+        )
+        next_index += 1
+
+    return black_keys
+
+
+def create_virtual_piano_keyboard(
+    *,
+    frame_width: int,
+    frame_height: int,
+    notes: tuple[str, ...] = DEFAULT_NOTES,
+) -> list[PianoKey]:
+    """Create full virtual piano keyboard with white and black keys."""
+
+    white_keys = create_virtual_piano_keys(
+        frame_width=frame_width,
+        frame_height=frame_height,
+        notes=notes,
+    )
+    black_keys = create_black_piano_keys(
+        white_keys=white_keys,
+    )
+
+    return [*white_keys, *black_keys]
+
+
+def sort_keys_for_hit_testing(keys: list[PianoKey]) -> list[PianoKey]:
+    """Return keys ordered so visually topmost keys are tested first."""
+
+    return sorted(
+        keys,
+        key=lambda key: 0 if key.kind == PianoKeyKind.BLACK else 1,
+    )
 
 
 def scale_normalized_landmark(
@@ -781,7 +957,7 @@ def find_hovered_key(
 
     point = PianoPoint(x=fingertip.x, y=fingertip.y)
 
-    for key in keys:
+    for key in sort_keys_for_hit_testing(keys):
         if is_point_inside_key(point=point, key=key):
             return key
 
@@ -941,6 +1117,7 @@ def create_note_waveform(
 def get_key_color(
     *,
     key_index: int,
+    key_kind: PianoKeyKind,
     hovered_key_indexes: frozenset[int],
     triggered_key_indexes: frozenset[int],
 ) -> tuple[int, int, int]:
@@ -952,7 +1129,10 @@ def get_key_color(
     if key_index in hovered_key_indexes:
         return (0, 180, 255)
 
-    return (160, 160, 160)
+    if key_kind == PianoKeyKind.BLACK:
+        return (35, 35, 35)
+
+    return (210, 210, 210)
 
 
 def draw_text(
@@ -1008,6 +1188,7 @@ def draw_virtual_piano_key(
 
     color = get_key_color(
         key_index=key.index,
+        key_kind=key.kind,
         hovered_key_indexes=hovered_key_indexes,
         triggered_key_indexes=triggered_key_indexes,
     )
@@ -1049,12 +1230,15 @@ def draw_virtual_piano_key(
 
     center = key.center
 
+    label_scale = 0.72 if key.kind == PianoKeyKind.BLACK else 0.9
+    label_offset_x = 18 if key.kind == PianoKeyKind.BLACK else 12
+
     draw_text(
         frame,
         get_note_display_label(key.note),
-        (center.x - 12, center.y + 8),
-        scale=0.9,
-        color=color,
+        (center.x - label_offset_x, center.y + 8),
+        scale=label_scale,
+        color=(255, 255, 255) if key.kind == PianoKeyKind.BLACK else color,
         thickness=2,
     )
 
@@ -1068,7 +1252,10 @@ def draw_virtual_piano_keys(
 ) -> None:
     """Draw all virtual piano keys."""
 
-    for key in keys:
+    for key in sorted(
+        keys,
+        key=lambda piano_key: 0 if piano_key.kind == PianoKeyKind.WHITE else 1,
+    ):
         draw_virtual_piano_key(
             frame,
             key=key,
@@ -1134,7 +1321,7 @@ def draw_rgb_hud(
 
     lines = [
         "Virtual Depth Piano",
-        "MediaPipe fingertip + depth-assisted press",
+        "MediaPipe fingertip + depth-assisted piano keys",
         f"Fingertips: {len(fingertips)}",
         f"Depth pressed: {pressed_count}",
         f"Max local disparity: {max_local_disparity:.1f}",
@@ -1260,7 +1447,7 @@ def run() -> None:
     state = PianoState()
 
     audio_player = NoteAudioPlayer()
-    audio_player.initialize(notes=DEFAULT_NOTES)
+    audio_player.initialize(notes=DEFAULT_AUDIO_NOTES)
 
     try:
         with dai.Device(pipeline) as device:
@@ -1286,7 +1473,7 @@ def run() -> None:
 
                 rgb_height, rgb_width = rgb_frame.shape[:2]
 
-                keys = create_virtual_piano_keys(
+                keys = create_virtual_piano_keyboard(
                     frame_width=rgb_width,
                     frame_height=rgb_height,
                 )
