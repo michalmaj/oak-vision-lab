@@ -25,6 +25,7 @@ from oak_vision_lab.demos.virtual_depth_piano import (
     is_point_inside_key,
     is_point_inside_polygon,
     is_point_on_segment,
+    maybe_mirror_frame,
     measure_fingertip_depth,
     measure_fingertips_depth,
     scale_fingertip_to_frame,
@@ -765,3 +766,39 @@ def test_create_note_waveform_rejects_invalid_sample_rate() -> None:
 def test_create_note_waveform_rejects_invalid_volume() -> None:
     with pytest.raises(ValueError, match="volume must be between"):
         create_note_waveform(frequency=440.0, volume=2.0)
+
+
+def test_maybe_mirror_frame_returns_same_frame_when_disabled() -> None:
+    frame = np.array(
+        [
+            [1, 2, 3],
+            [4, 5, 6],
+        ],
+        dtype=np.uint8,
+    )
+
+    result = maybe_mirror_frame(frame, mirror=False)
+
+    assert np.array_equal(result, frame)
+
+
+def test_maybe_mirror_frame_flips_frame_when_enabled() -> None:
+    frame = np.array(
+        [
+            [1, 2, 3],
+            [4, 5, 6],
+        ],
+        dtype=np.uint8,
+    )
+
+    result = maybe_mirror_frame(frame, mirror=True)
+
+    expected = np.array(
+        [
+            [3, 2, 1],
+            [6, 5, 4],
+        ],
+        dtype=np.uint8,
+    )
+
+    assert np.array_equal(result, expected)

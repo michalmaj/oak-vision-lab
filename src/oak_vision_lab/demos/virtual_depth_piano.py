@@ -36,6 +36,8 @@ WINDOW_NAME = "oak-vision-lab | Virtual Depth Piano"
 RGB_STREAM_NAME = "rgb"
 DISPARITY_STREAM_NAME = "disparity"
 
+MIRROR_VIEW = True
+
 RGB_PREVIEW_WIDTH = 640
 RGB_PREVIEW_HEIGHT = 400
 
@@ -1208,6 +1210,19 @@ def draw_depth_samples_on_disparity(
         )
 
 
+def maybe_mirror_frame(
+    frame: np.ndarray,
+    *,
+    mirror: bool = MIRROR_VIEW,
+) -> np.ndarray:
+    """Mirror a frame horizontally when mirror presentation mode is enabled."""
+
+    if not mirror:
+        return frame
+
+    return cv2.flip(frame, 1)
+
+
 def create_split_screen(
     *,
     rgb_frame: np.ndarray,
@@ -1254,8 +1269,8 @@ def run() -> None:
                 rgb_message = rgb_queue.get()
                 disparity_message = disparity_queue.get()
 
-                rgb_frame = rgb_message.getCvFrame()
-                disparity_frame = disparity_message.getFrame()
+                rgb_frame = maybe_mirror_frame(rgb_message.getCvFrame())
+                disparity_frame = maybe_mirror_frame(disparity_message.getFrame())
 
                 rgb_height, rgb_width = rgb_frame.shape[:2]
 
